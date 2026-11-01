@@ -301,14 +301,17 @@ function analysisExport(){
   day:clean,counts:result.counts,rows:result.rows.map(x=>({key:x.key,group:x.group,color:x.color,record:x.record,members:x.members,selection:x.selection,normal:x.normal,normalExpression:x.normalExpression,hypothesis:x.hypothesis,hypExpression:x.hypExpression,eligible:x.eligible,cOrder:x.cOrder,cExcluded:x.cExcluded,issues:x.issues})),
   sections:daily.sections()};
 }
-$('open-result-viewer').onclick=()=>action(async()=>{
+$('open-result-viewer').onclick=()=>{
+ if(busy)return;
+ try{
  const data=analysisExport();
  if(!data.rows.length||data.sections.length!==26)throw Error('先に対象レースのある一覧を作成してください');
  const payload={format:data.format,version:data.version,date:data.date,status:data.status,note:data.note,sections:data.sections};
- const form=document.createElement('form');form.method='POST';form.action='https://boatrace-abc-results.pages.dev/handoff';form.target='_self';
+ const form=document.createElement('form');form.method='POST';form.action='/api/results-handoff';form.target='_self';
  const input=document.createElement('input');input.type='hidden';input.name='payload';input.value=JSON.stringify(payload);form.append(input);document.body.append(form);
- note('この日の一覧を結果更新サイトへ移動します。作成内容の保存状態は変更しません。');form.submit();
-});
+ note('その日の一覧を開いています…');HTMLFormElement.prototype.submit.call(form);
+ }catch(error){note('移動できませんでした：'+error.message+'。保存済みの一覧は保持しています。');}
+};
 $('export-text').onclick=()=>action(async()=>{const data=analysisExport(),lines=['ABC 予想一覧',`開催日：${data.date}`,`書出日時：${data.exportedAt}`,`状態：${data.status}`,data.note,''];lines.push(...daily.textLines());for(const section of data.sections){lines.push('【'+section.title+'】',section.columns.join('\t'));for(const row of section.rows)lines.push(row.map(v=>String(v??'').replace(/[\t\r\n]+/g,' ')).join('\t'));lines.push('');}download('ABC_一覧_'+data.date+'.txt',lines.join('\r\n'),'text/plain;charset=utf-8');note('一覧をテキスト形式で書き出しました。端末でダウンロードを確認してください。');});
 $('new-entry').onclick=()=>{
  if(busy)return;
