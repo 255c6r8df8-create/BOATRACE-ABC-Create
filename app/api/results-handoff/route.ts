@@ -1,6 +1,7 @@
 // Same-origin first hop: the creator's document policy need not allow an external form action.
 const DESTINATION = 'https://boatrace-abc-results.pages.dev/handoff';
-const escape = (text: string) => text.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
+const entities: Record<string,string> = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+const escape = (text: string) => text.replace(/[&<>"']/g, c => entities[c]!);
 export async function POST(request: Request) {
   try {
     if (!request.headers.get('content-type')?.startsWith('application/x-www-form-urlencoded')) return new Response('一覧の移動形式が不正です。', { status: 415 });
