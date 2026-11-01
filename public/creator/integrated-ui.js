@@ -11,12 +11,14 @@ const savedTime=t=>new Date(t).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo',hou
 const report=t=>{$('review-status').textContent=t};
 function download(name,data,type='application/json'){const url=URL.createObjectURL(new Blob([data],{type})),a=node('a','');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);}
 function note(t){status(t);$('status').scrollIntoView({block:'nearest'});}
+// Transfer the current day directly, retaining the authoring page and its unsaved input.
+const moveToResults=document.createElement('button');moveToResults.id='open-result-viewer';moveToResults.type='button';moveToResults.className='primary';moveToResults.disabled=true;moveToResults.textContent='この一覧を結果更新へ';$('export-text').before(moveToResults);
 function syncControls(){
  const history=!!shownRecord,gate=day&&!history?C.gate(day):null;
  for(const id of ['date','pdfs','parse','source','load-source','cancel-source','pdf-checked','coverage-checked'])$(id).disabled=busy||history;
  $('fetch-auto').disabled=busy||history||!!day?.source||!!day?.sourcePending; $('c-official-extract').disabled=busy||history||!day||!!day.source||!!day.sourcePending;
  $('fetch-auto').textContent=day?'別の開催場を追加・レースを選択':'選んだ情報を公式サイトから取得';
- for(const id of ['export-text'])$(id).disabled=busy||!day;
+ for(const id of ['export-text','open-result-viewer'])$(id).disabled=busy||!day;
  $('header-result-update').disabled=busy;
  for(const id of ['history-refresh','prev-month','next-month','history-month'])$(id).disabled=busy;
  document.querySelectorAll('#history button,#calendar button,#races button,#list-host button').forEach(b=>b.disabled=busy);
@@ -299,6 +301,14 @@ function analysisExport(){
   day:clean,counts:result.counts,rows:result.rows.map(x=>({key:x.key,group:x.group,color:x.color,record:x.record,members:x.members,selection:x.selection,normal:x.normal,normalExpression:x.normalExpression,hypothesis:x.hypothesis,hypExpression:x.hypExpression,eligible:x.eligible,cOrder:x.cOrder,cExcluded:x.cExcluded,issues:x.issues})),
   sections:daily.sections()};
 }
+$('open-result-viewer').onclick=()=>action(async()=>{
+ const data=analysisExport();
+ if(!data.rows.length||data.sections.length!==26)throw Error('先に対象レースのある一覧を作成してください');
+ const payload={format:data.format,version:data.version,date:data.date,status:data.status,note:data.note,sections:data.sections};
+ const form=document.createElement('form');form.method='POST';form.action='https://boatrace-abc-results.pages.dev/handoff';form.target='_blank';form.rel='noopener';
+ const input=document.createElement('input');input.type='hidden';input.name='payload';input.value=JSON.stringify(payload);form.append(input);document.body.append(form);
+ note('この日の一覧を結果更新サイトへ移動します。作成内容の保存状態は変更しません。');form.submit();
+});
 $('export-text').onclick=()=>action(async()=>{const data=analysisExport(),lines=['ABC 予想一覧',`開催日：${data.date}`,`書出日時：${data.exportedAt}`,`状態：${data.status}`,data.note,''];lines.push(...daily.textLines());for(const section of data.sections){lines.push('【'+section.title+'】',section.columns.join('\t'));for(const row of section.rows)lines.push(row.map(v=>String(v??'').replace(/[\t\r\n]+/g,' ')).join('\t'));lines.push('');}download('ABC_一覧_'+data.date+'.txt',lines.join('\r\n'),'text/plain;charset=utf-8');note('一覧をテキスト形式で書き出しました。端末でダウンロードを確認してください。');});
 $('new-entry').onclick=()=>{
  if(busy)return;
