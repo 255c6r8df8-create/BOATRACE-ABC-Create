@@ -11,7 +11,7 @@ const savedTime=t=>new Date(t).toLocaleString('ja-JP',{timeZone:'Asia/Tokyo',hou
 const report=t=>{$('review-status').textContent=t};
 function download(name,data,type='application/json'){const url=URL.createObjectURL(new Blob([data],{type})),a=node('a','');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);}
 function note(t){status(t);$('status').scrollIntoView({block:'nearest'});}
-// Transfer the current day directly, retaining the authoring page and its unsaved input.
+// Transfer the current day through a same-tab navigation (no iPhone popup).
 const moveToResults=document.createElement('button');moveToResults.id='open-result-viewer';moveToResults.type='button';moveToResults.className='primary';moveToResults.disabled=true;moveToResults.textContent='この一覧を結果更新へ';$('export-text').before(moveToResults);
 function syncControls(){
  const history=!!shownRecord,gate=day&&!history?C.gate(day):null;
@@ -305,7 +305,7 @@ $('open-result-viewer').onclick=()=>action(async()=>{
  const data=analysisExport();
  if(!data.rows.length||data.sections.length!==26)throw Error('先に対象レースのある一覧を作成してください');
  const payload={format:data.format,version:data.version,date:data.date,status:data.status,note:data.note,sections:data.sections};
- const form=document.createElement('form');form.method='POST';form.action='https://boatrace-abc-results.pages.dev/handoff';form.target='_blank';form.rel='noopener';
+ const form=document.createElement('form');form.method='POST';form.action='https://boatrace-abc-results.pages.dev/handoff';form.target='_self';
  const input=document.createElement('input');input.type='hidden';input.name='payload';input.value=JSON.stringify(payload);form.append(input);document.body.append(form);
  note('この日の一覧を結果更新サイトへ移動します。作成内容の保存状態は変更しません。');form.submit();
 });
