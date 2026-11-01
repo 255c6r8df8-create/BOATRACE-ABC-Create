@@ -26,7 +26,6 @@ export default defineConfig(async ({ command }) => {
   const localBindingConfig = {
     name: "boatrace-abc-create",
     main: "./worker/index.ts",
-    compatibility_flags: ["nodejs_compat"],
     d1_databases: d1 && databaseId
       ? [{ binding: d1, database_name: "site-creator-d1", database_id: databaseId }]
       : [],
