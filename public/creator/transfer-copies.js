@@ -9,7 +9,10 @@
    const {sha256,...body}=record;ensure(await C.sha(C.canon(body))===sha256,'引き渡し控えの内容が一致しません');
    const p=record.payload;ensure(p?.format==='BOATRACE_ABC_ANALYSIS_EXPORT'&&/^20\d\d-\d\d-\d\d$/.test(p.date)&&p.date===record.date&&Number.isFinite(Date.parse(record.savedAt)),'引き渡し控えの日付が違います');
    ensure(Array.isArray(p.sections)&&p.sections.length===26&&new Set(p.sections.map(s=>s.id)).size===26,'引き渡し控えの26区分が揃っていません');
-   for(const s of p.sections)ensure(typeof s.id==='string'&&Array.isArray(s.columns)&&s.columns.every(v=>typeof v==='string')&&Array.isArray(s.rows)&&s.rows.every(r=>Array.isArray(r)&&r.length===s.columns.length&&r.every(v=>typeof v==='string')),'引き渡し控えの表を確認できません');
+   // The creator's daily view emits numeric counts as well as text. Preserve both
+   // exactly; accepting a finite JSON number does not alter the source snapshot.
+   const cell=v=>typeof v==='string'||typeof v==='number'&&Number.isFinite(v);
+   for(const s of p.sections)ensure(typeof s.id==='string'&&Array.isArray(s.columns)&&s.columns.every(v=>typeof v==='string')&&Array.isArray(s.rows)&&s.rows.every(r=>Array.isArray(r)&&r.length===s.columns.length&&r.every(cell)),'引き渡し控えの表を確認できません');
    const d=await C.verifyDraftSafetyCopy(record.safetyCopy);ensure(d.date===record.date,'入力控えと一覧の日付が違います');
    return clone(record);
   }
