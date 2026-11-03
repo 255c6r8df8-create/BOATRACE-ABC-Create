@@ -1,6 +1,6 @@
 /* v23 successor: one intake, one review card, one 26-section view and one date ledger. */
 (async()=>{'use strict';
-const $=id=>document.getElementById(id),C=ABCIntegrated,contract=JSON.parse($('template-contract').textContent),design=JSON.parse($('design-data').textContent);globalThis.ABC_INTEGRATED_CONTRACT=contract;
+const $=id=>document.getElementById(id),C=ABCIntegrated,T=ABCTransferCopies.create({core:C}),contract=JSON.parse($('template-contract').textContent),design=JSON.parse($('design-data').textContent);globalThis.ABC_INTEGRATED_CONTRACT=contract;
 let day=null,computed=null,selected=null,archives=[],importedRecords=[],restoreReady=false,shownRecord=null,busy=false,generation=0,draftBase=null,draftConflict=false;
 // Uncommitted C form fields belong to a race within this authoring session only.
 let cEditorKey=null;const cDrafts=new Map(),quickDrafts=new Map();
@@ -266,19 +266,27 @@ function renderList(){const target=$('list-host');target.replaceChildren();targe
  if(!s.rows.length){const tr=node('tr',''),td=node('td',['crossfire','crossfire-total','cf-image-master','cf-image-races','cf-image-total'].includes(s.id)?([1,2].includes(day.creation?.ckVersion)?'当日の参加未指定（買い目なし）':'未照合（指定原本未接続）'):'対象行なし／結果未更新');td.colSpan=s.columns.length;tr.append(td);tbody.append(tr)}
  for(const cells of s.rows){const tr=node('tr','');cells.forEach((v,i)=>{const td=node('td',v);if(typeof v==='string'&&v.includes('\n')){const pair=node('div','');pair.className='pair';for(const line of v.split('\n'))pair.append(node('div',line));td.replaceChildren(pair)}if(s.columns[i]==='場・R'){const x=computed.rows.find(x=>x.record.venue+x.record.race_number+'R'===v);if(x){const link=node('button',v);link.type='button';link.className='race-link';link.onclick=()=>{selected=x.key;renderCard();document.querySelectorAll('#races button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.race===selected)));syncControls();$('review-card').scrollIntoView({block:'start'})};td.replaceChildren(link,document.createTextNode(' '),daily.sourceLink(x.record,'出走表'));if(day.creation?.cOriginals?.[x.key]?.afterDeadline)td.append(node('span','（事後参考）'))}}tr.append(td)});tbody.append(tr)}table.append(tbody);wrap.append(table);section.append(wrap);target.append(section)}
  $('list-caption').textContent='表は指定の列順で表示します。買い目欄の投資は予想上の予定額です。実購入の的中率・回収率は上の当日集計を参照してください。';}
-function updateHistoryStatus(){$('history-status').textContent='端末内 '+archives.length+'件';}
-async function reloadLedger(){archives=await C.readAll();calendar();updateHistoryStatus();}
+function updateHistoryStatus(){$('history-status').textContent='正式保存 '+archives.length+'件／引き渡し控え '+importedRecords.length+'件';}
+async function reloadLedger(){[archives,importedRecords]=await Promise.all([C.readAll(),T.readAll()]);calendar();updateHistoryStatus();}
 let month=new Date(Date.now()+9*3600000).toISOString().slice(0,7);
 function calendar(){const [y,m]=month.split('-').map(Number),start=new Date(Date.UTC(y,m-1,1)),count=new Date(Date.UTC(y,m,0)).getUTCDate();$('calendar-month').textContent=y+'年'+m+'月';$('history-month').value=month;const box=$('calendar');box.replaceChildren();for(const text of ['日','月','火','水','木','金','土'])box.append(node('strong',text));for(let i=0;i<start.getUTCDay();i++)box.append(node('span',''));
- for(let d=1;d<=count;d++){const date=month+'-'+String(d).padStart(2,'0'),saved=archives.some(x=>x.date===date),imported=importedRecords.some(x=>x.date===date),b=node('button',String(d)+(saved?' ●':'')+(imported?' ◇':''));b.type='button';b.dataset.date=date;b.className=saved?'saved':imported?'imported':'';b.setAttribute('aria-label',date+(saved?' 端末内保存あり':'')+(imported?' 添付JSONあり':''));b.onclick=()=>action(()=>showHistory(date));box.append(b)}}
+ for(let d=1;d<=count;d++){const date=month+'-'+String(d).padStart(2,'0'),saved=archives.some(x=>x.date===date),imported=importedRecords.some(x=>x.date===date),b=node('button',String(d)+(saved?' ●':'')+(imported?' ◇':''));b.type='button';b.dataset.date=date;b.className=saved?'saved':imported?'imported':'';b.setAttribute('aria-label',date+(saved?' 端末内保存あり':'')+(imported?' 引き渡し控えあり':''));b.onclick=()=>action(()=>showHistory(date));box.append(b)}}
 let historyGeneration=0;
-async function showHistory(date){const historyTicket=++historyGeneration,box=$('history');box.replaceChildren();const saved=archives.filter(r=>r.date===date).sort((a,b)=>b.revision-a.revision),attached=importedRecords.filter(r=>r.date===date).sort((a,b)=>b.revision-a.revision);box.append(node('h3',date+'の一覧（●端末内）'));
+async function showHistory(date){const historyTicket=++historyGeneration,box=$('history');box.replaceChildren();const saved=archives.filter(r=>r.date===date).sort((a,b)=>b.revision-a.revision),attached=importedRecords.filter(r=>r.date===date).sort((a,b)=>b.savedAt.localeCompare(a.savedAt));box.append(node('h3',date+'の一覧（●正式保存／◇引き渡し控え）'));
  if(!saved.length&&!attached.length)box.append(node('p','この日の保存済み一覧はありません。'));
  for(const record of saved){const p=await C.verify(record);if(historyTicket!==historyGeneration)return;const line=node('div','');line.className='history-row';line.append(node('span','版'+record.revision+' '+(p.kind==='CONFIRMED'?'利用者照合済み':'未照合')+' '+savedTime(p.savedAt)));const open=node('button','一覧を再表示');open.onclick=()=>action(async()=>{refuseDiscardDraft();const parsed=await C.verify(record);generation++;day=copy(parsed.day);shownRecord=parsed;$('date').value=day.date;refresh();note('保存版'+record.revision+'を再読込：内容SHA一致。閲覧専用です。')});line.append(open);
   if(record.id===saved[0]?.id&&C.resumable(p)){const resume=node('button','未照合版から作成を再開');resume.type='button';resume.dataset.resume=record.id;resume.onclick=()=>action(async()=>{refuseDiscardDraft();await reloadLedger();const latest=archives.filter(x=>x.date===record.date).at(-1),next=await C.resumeDraft(record,latest);generation++;day=next;draftBase=copy(record);draftConflict=false;shownRecord=null;$('save-accept').checked=false;$('date').value=day.date;refresh();note('未照合版'+record.revision+'を複製して作成を再開しました。保存済み原本は変更せず、新しい保存版を追記します。')});line.append(resume)}
   box.append(line)}
 
+
+ for(const record of attached){
+  const checked=await T.verify(record);if(historyTicket!==historyGeneration)return;
+  const line=node('div','');line.className='history-row';line.append(node('span','引き渡し控え '+savedTime(checked.savedAt)+'（正式保存とは別）'));
+  const open=node('button','控えの一覧を結果画面で開く');open.type='button';open.onclick=()=>action(async()=>{refuseDiscardDraft();const verified=await T.verify(record);submitResultPayload(verified.payload);});line.append(open);
+  const backup=node('button','この控えをファイルに保存');backup.type='button';backup.onclick=()=>action(async()=>{const verified=await T.verify(record);download('ABC_引き渡し控え_'+verified.date+'_'+verified.id.slice(-8)+'.json',JSON.stringify(verified),'application/json;charset=utf-8');note('引き渡し控えの書き出しを開始しました。正式保存とは別の閲覧・移行用の控えです。');});line.append(backup);box.append(line);
+ }
  syncControls();
+ box.scrollIntoView?.({block:'start',behavior:'smooth'});
 }
 async function save(kind){if(!day||shownRecord)throw Error('未保存の一覧を選択してください');if(!$('save-accept').checked)throw Error('保存区分の確認欄を確認してください');if(kind==='CONFIRMED'&&!confirm('照合済み一覧を固定保存します。以後、この日付の買い目・指定は変更できません。保存しますか？'))return;
  const ticket=generation,stamp=C.canon(day);await reloadLedger();const records=archives.filter(x=>x.date===day.date),previous=records.at(-1);try{C.assertDraftBase(draftBase,previous)}catch(e){draftConflict=true;report(e.message);throw e;}if(records.some(x=>JSON.parse(x.payload).kind==='CONFIRMED'))throw Error('この日は確定済みです。変更・上書きできません');const targetDay=copy(day),record=await C.seal(targetDay,kind,previous);if(ticket!==generation||stamp!==C.canon(day))throw Error('保存準備中に入力が変更されました');try{await C.append(record)}catch(e){
@@ -301,17 +309,19 @@ function analysisExport(){
   day:clean,counts:result.counts,rows:result.rows.map(x=>({key:x.key,group:x.group,color:x.color,record:x.record,members:x.members,selection:x.selection,normal:x.normal,normalExpression:x.normalExpression,hypothesis:x.hypothesis,hypExpression:x.hypExpression,eligible:x.eligible,cOrder:x.cOrder,cExcluded:x.cExcluded,issues:x.issues})),
   sections:daily.sections()};
 }
-$('open-result-viewer').onclick=()=>{
- if(busy)return;
- try{
- const data=analysisExport();
- if(!data.rows.length||data.sections.length!==26)throw Error('先に対象レースのある一覧を作成してください');
- const payload={format:data.format,version:data.version,date:data.date,status:data.status,note:data.note,sections:data.sections};
+function submitResultPayload(payload){
  const form=document.createElement('form');form.method='POST';form.action='/api/results-handoff';form.target='_self';
  const input=document.createElement('input');input.type='hidden';input.name='payload';input.value=JSON.stringify(payload);form.append(input);document.body.append(form);
- note('その日の一覧を開いています…');HTMLFormElement.prototype.submit.call(form);
- }catch(error){note('移動できませんでした：'+error.message+'。保存済みの一覧は保持しています。');}
-};
+ note('控えを保持して、その日の一覧を開いています…');HTMLFormElement.prototype.submit.call(form);
+}
+$('open-result-viewer').onclick=()=>action(async()=>{
+ const ticket=generation,stamp=C.canon(day),data=analysisExport();
+ if(!data.rows.length||data.sections.length!==26)throw Error('先に対象レースのある一覧を作成してください');
+ const payload={format:data.format,version:data.version,date:data.date,status:data.status,note:data.note,sections:data.sections};
+ const safetyCopy=await C.draftSafetyCopy(copy(day));await T.save(payload,safetyCopy);
+ if(ticket!==generation||stamp!==C.canon(day))throw Error('入力が変わったため移動を停止しました。移動前の控えと現在の入力を保持しています');
+ submitResultPayload(payload);
+});
 $('export-text').onclick=()=>action(async()=>{const data=analysisExport(),lines=['ABC 予想一覧',`開催日：${data.date}`,`書出日時：${data.exportedAt}`,`状態：${data.status}`,data.note,''];lines.push(...daily.textLines());for(const section of data.sections){lines.push('【'+section.title+'】',section.columns.join('\t'));for(const row of section.rows)lines.push(row.map(v=>String(v??'').replace(/[\t\r\n]+/g,' ')).join('\t'));lines.push('');}download('ABC_一覧_'+data.date+'.txt',lines.join('\r\n'),'text/plain;charset=utf-8');note('一覧をテキスト形式で書き出しました。端末でダウンロードを確認してください。');});
 $('new-entry').onclick=()=>{
  if(busy)return;
@@ -359,6 +369,7 @@ $('backup-restore').onclick=()=>action(async()=>{if(!backupCandidate||!backupIns
 storageMode();
 $('save-verified').onclick=()=>action(()=>save('CONFIRMED'));$('save-pending').onclick=()=>action(()=>save('UNVERIFIED'));
 $('history-month').onchange=()=>{if(/^\d{4}-(0[1-9]|1[0-2])$/.test($('history-month').value)){month=$('history-month').value;calendar()}};
+$('transfer-copy-file').onchange=event=>{const file=event.target.files?.[0];event.target.value='';if(!file)return;action(async()=>{if(file.size>60000000)throw Error('控えファイルは60MB以内で選択してください');const record=await T.importCopy(JSON.parse(await file.text()));await reloadLedger();month=record.date.slice(0,7);calendar();await showHistory(record.date);$('saved').open=true;note('引き渡し控えを読み込みました。正式な予想記録への変更・昇格はしていません。');});};
 $('history-refresh').onclick=()=>action(reloadLedger);
 for(const [id,delta]of [['prev-month',-1],['next-month',1]])$(id).onclick=()=>{const [y,m]=month.split('-').map(Number);month=new Date(Date.UTC(y,m-1+delta,1)).toISOString().slice(0,7);calendar()};
 function updateVenueCount(){const selected=[...document.querySelectorAll('#venue-list input:checked')];$('venue-count').textContent=selected.length?selected.length+'場を選択中':'選択なし（当日の全開催場）';}
