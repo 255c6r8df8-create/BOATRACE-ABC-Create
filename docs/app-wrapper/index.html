@@ -82,7 +82,8 @@
 <script>
 // 一覧作成は初回選択時に読み込み、タブ移動では再読み込みしない。
 const resultsURL='https://boatrace-abc-create.255c6r8df8.workers.dev/creator/fixed-daily.html';
-function freshResultsURL(){const url=new URL(resultsURL);url.searchParams.set('app_view','20261112-fixed-base');return url.href;}
+const legacyResultsURL='https://boatrace-abc-results.pages.dev/';
+function freshResultsURL(){const url=new URL(new URL(location.href).searchParams.get('legacy')==='1'?legacyResultsURL:resultsURL);url.searchParams.set('app_view','20261112-fixed-base');return url.href;}
 let resultsNeedsRefresh=false;
 const creatorURL='https://boatrace-abc-create.255c6r8df8.workers.dev/creator/index.html?v=20261112-fixed-base';
 const icons={
