@@ -35,7 +35,7 @@ function validateCourse(day,r,c){
  let u;try{u=new URL(c.source)}catch{fail('日和の確認元URLが必要です')}
  if(u.protocol!=='https:'||!['kyoteibiyori.com','www.kyoteibiyori.com'].includes(u.hostname)||u.username||u.password)fail('日和の確認元URLを指定してください');return Number(c.value);
 }
-function compute(day,supplements={}){
+function compute(day,supplements={},options={}){
  if(!day||!/^20\d\d-\d\d-\d\d$/.test(day.date)||!Number.isFinite(Date.parse(day.date+'T00:00:00Z'))||new Date(day.date+'T00:00:00Z').toISOString().slice(0,10)!==day.date||day.input?.race_date!==day.date||!Array.isArray(day.input.races)||day.input.races.length>288)fail('固定一覧の日付・入力が不正です');
  const ids=new Set();for(const r of day.input.races){if(r.race_date!==day.date||!venueCodes.includes(r.venue)||!Number.isInteger(r.race_number)||r.race_number<1||r.race_number>12||!/^([01]\d|2[0-3]):[0-5]\d$/.test(r.deadline)||ids.has(key(r)))fail('固定一覧の場・R・締切・重複を確認してください');ids.add(key(r));}
  const rows=[],held=[],nonTargets=[],counts=Object.fromEntries(['A','B','C','D','E','K'].map(g=>[g,0]));
@@ -56,11 +56,20 @@ function compute(day,supplements={}){
    else evaluated.push(F.evaluateC(bs,{originalC:originalC===true}));
   }
   const kvals=excluded?[]:F.evaluateKs(bs,{raceNumber:r.race_number});evaluated.push(...kvals);
+  if(options.legacyE){
   // Derive E only from an independently matched, adopted K prototype.
   if(originalA){
    const seeds=kvals.filter(x=>x.status==='eligible');
    for(const seed of seeds)evaluated.push(F.promoteE(bs,seed));
    if(!seeds.length&&F.promoteE(bs,null).status==='pending')held.push({key:k,record:r,group:'E',reason:'近率条件に該当。採用済みK条件から当レースの原型を特定できません'});
+  }
+  }else if(originalA){
+   // E's four-point prototype is a bet shape, not a B/K race-entry condition.
+   const e13=F.evaluateE13(bs);if(e13.status==='eligible'){evaluated.push(e13.prototype,e13);}else if(e13.status==='pending')held.push({key:k,record:r,group:'E',reason:(e13.reasons||[]).join('／')});
+   const numeric=F.boats(bs),near12=Math.abs(numeric[0].rate100-numeric[1].rate100)<1000;
+   const e12=kvals.filter(x=>x.status==='eligible').map(seed=>F.promoteE(bs,seed)).filter(v=>v.status==='eligible'&&v.patterns.includes('12型'));
+   for(const v of e12)evaluated.push({...v,patterns:['12型']});
+   if(near12&&!e12.length)held.push({key:k,record:r,group:'E',reason:'12型の近率条件に該当。2着2艇・3着2艇の確定配置が未確認'});
   }
   for(const v of evaluated){if(v.status==='eligible'){const same=rows.find(x=>x.key===k&&x.group===v.group&&x.tickets.join('|')===v.tickets.join('|'));if(same)same.patterns=[...new Set([...(same.patterns||[]),...(v.patterns||[])])];else rows.push({...v,key:k,record:clone(r),sourceCategories:[...sourceCategories],sourceClassification:{originalA,originalB,originalC},displayCategory:v.group,betType:({A:'通常A12点',B:'通常B9点',C:'一般形16点',D:'一般形16点',E:'格上げ10点',K:'K型4点'})[v.group],profile:clone(s.official),course:clone(s.course||null)});}else if(v.status==='pending')held.push({key:k,record:r,group:v.group||'判定',reason:(v.reasons||[]).join('／')});}
   if(!rows.some(x=>x.key===k)&&!held.some(x=>x.key===k))nonTargets.push(k);
@@ -81,8 +90,8 @@ function createSnapshot(day,supplements,previous=null,now=Date.now()){
  if(previous){if(previous.date!==day.date||previous.ruleVersion!==F.VERSION)fail('保存版の日付・ルール版が不一致です');
   for(const r of previous.input.races){if(now>=Date.parse(day.date+'T'+r.deadline+':00+09:00')){const next=day.input.races.find(x=>key(x)===key(r));if(JSON.stringify(next)!==JSON.stringify(r)||JSON.stringify(previous.members[key(r)])!==JSON.stringify(day.members[key(r)])||JSON.stringify(previous.supplements[key(r)]||null)!==JSON.stringify(supplements[key(r)]||null)||JSON.stringify(previous.model.rows.filter(x=>x.key===key(r)))!==JSON.stringify(model.rows.filter(x=>x.key===key(r))))fail('締切後の保存済み固定ベース入力は変更できません');}}
  }
- return {format:'BOATRACE_FIXED_BASE_SNAPSHOT_V1',ruleVersion:F.VERSION,date:day.date,savedAt:new Date(now).toISOString(),revision:(previous?.revision||0)+1,input:clone(day.input),members:clone(day.members),fetchReport:clone(day.fetchReport||{}),supplements:clone(supplements),model:clone(model)};
+ return {format:'BOATRACE_FIXED_BASE_SNAPSHOT_V1',engineRevision:2,ruleVersion:F.VERSION,date:day.date,savedAt:new Date(now).toISOString(),revision:(previous?.revision||0)+1,input:clone(day.input),members:clone(day.members),fetchReport:clone(day.fetchReport||{}),supplements:clone(supplements),model:clone(model)};
 }
-function verifySnapshot(s){if(!s||s.format!=='BOATRACE_FIXED_BASE_SNAPSHOT_V1'||s.ruleVersion!==F.VERSION||!/^20\d\d-\d\d-\d\d$/.test(s.date)||s.input?.race_date!==s.date||!Number.isInteger(s.revision)||s.revision<1||!Number.isFinite(Date.parse(s.savedAt)))fail('固定ベース保存形式が不正です');const model=compute({date:s.date,input:s.input,members:s.members,fetchReport:s.fetchReport},s.supplements);if(JSON.stringify(model)!==JSON.stringify(s.model))fail('保存した固定ベース買い目と入力が不一致です');return s;}
+function verifySnapshot(s){if(!s||s.format!=='BOATRACE_FIXED_BASE_SNAPSHOT_V1'||s.ruleVersion!==F.VERSION||!/^20\d\d-\d\d-\d\d$/.test(s.date)||s.input?.race_date!==s.date||!Number.isInteger(s.revision)||s.revision<1||!Number.isFinite(Date.parse(s.savedAt)))fail('固定ベース保存形式が不正です');const model=compute({date:s.date,input:s.input,members:s.members,fetchReport:s.fetchReport},s.supplements,{legacyE:s.engineRevision===undefined||s.engineRevision===1});if(s.engineRevision!==undefined&&![1,2].includes(s.engineRevision))fail('未対応の保存処理版です');if(JSON.stringify(model)!==JSON.stringify(s.model))fail('保存した固定ベース買い目と入力が不一致です');return s;}
 return Object.freeze({compute,officialURL,officialPeriodCourse,validateProfile,validateCourse,validateKSeed,createSnapshot,verifySnapshot});
 });

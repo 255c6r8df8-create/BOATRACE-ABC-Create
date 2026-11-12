@@ -103,6 +103,14 @@ function evaluateKs(input,{raceNumber}={}){
  if(bs[4].rate100>3000&&bs[4].rate100<=4000&&bs[2].grade==='B1')add('B5-04',[2,5],[3,4]);
  return rows;
 }
+function evaluateE13(input){
+ const bs=boats(input);
+ if(bs.some(b=>b.rate100===null))return pending('全国2連対率6艇が不足');
+ if(Math.abs(bs[0].rate100-bs[2].rate100)>=1000||!bs[1].grade.startsWith('B'))return no('13型の近率・②B級条件に非該当');
+ const chosen=keepPair(input,2,6);if(chosen.status!=='selected')return chosen;
+ const third=[chosen.boat,5].sort((a,b)=>a-b),prototype=result('K',1,[[[1],[3,4],third]],4,{patterns:['E13-K4']});
+ const promoted=promoteE(input,prototype);return {...promoted,patterns:['13型'],prototype,selection:{compared:[2,6],kept:chosen.boat,threshold:4.5}};
+}
 function promoteE(input,confirmedK){
  const bs=boats(input);if(bs.some(b=>b.rate100===null))return pending('全国2連対率6艇が不足');
  const patterns=[];if(Math.abs(bs[0].rate100-bs[1].rate100)<1000)patterns.push('12型');
@@ -113,5 +121,5 @@ function promoteE(input,confirmedK){
  if(parsed.length!==1||parsed[0][0].join('')!=='1'||parsed[0][1].length!==2||parsed[0][2].length!==2||new Set([...parsed[0][1],...parsed[0][2]]).size!==4||[...parsed[0][1],...parsed[0][2]].includes(1))fail('EのK原型が不正です');
  const [,xy,zw]=parsed[0];if(patterns.includes('13型')&&[...xy].sort((a,b)=>a-b).join('')!=='34')patterns.splice(patterns.indexOf('13型'),1);if(!patterns.length)return no('13型の①−③④の骨格に非該当');return result('E',1,[...parsed,[xy,[1],[...xy,...zw]]],10,{patterns});
 }
-return Object.freeze({VERSION,boats,layout,expand,keepPair,general16,evaluateA,evaluateB,evaluateC,evaluateD,evaluateK,evaluateKs,promoteE});
+return Object.freeze({VERSION,boats,layout,expand,keepPair,general16,evaluateA,evaluateB,evaluateC,evaluateD,evaluateK,evaluateKs,evaluateE13,promoteE});
 });
