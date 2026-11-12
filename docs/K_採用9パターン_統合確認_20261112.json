@@ -1,0 +1,113 @@
+{
+  "status": "採用済み9パターンの統合記録。新規採用・再採用ではない",
+  "entry": "従来のK入口を維持。現行B9点の入口とは独立",
+  "patterns": [
+    {
+      "id": "B-K-002",
+      "condition": "上位4艇が①②③⑤、全国率2位が⑤",
+      "formation": "①－（丸以外2艇の低率側＋追加艇）－（⑤＋丸数字）",
+      "n": 15,
+      "hits": 9,
+      "hit_pct": 60.0,
+      "roi": 159.66666666666666,
+      "status": "採用済み・最新統合本文を優先",
+      "historical_catalog_status": "採用済みベース・独立検証前"
+    },
+    {
+      "id": "B-K-003",
+      "condition": "B-K-002に加え全国率5位が④",
+      "formation": "①－（丸以外2艇の低率側＋追加艇）－（⑤＋丸数字）",
+      "n": 7,
+      "hits": 5,
+      "hit_pct": 71.42857142857143,
+      "roi": 182.5,
+      "status": "採用済み・最新統合本文を優先",
+      "historical_catalog_status": "採用済みベース・独立検証前"
+    },
+    {
+      "id": "B-DEL2-01",
+      "condition": "対象艇級別=B1、対象艇全国率順位=2",
+      "formation": "1-34-25",
+      "n": 20,
+      "hits": 8,
+      "hit_pct": 40.0,
+      "roi": 230.875,
+      "status": "採用済み・最新統合本文を優先",
+      "historical_catalog_status": "追加探索候補・今回の整理対象"
+    },
+    {
+      "id": "B-DEL2-02",
+      "condition": "対象艇が④より低率=True、①級別=B1",
+      "formation": "1-34-25",
+      "n": 7,
+      "hits": 5,
+      "hit_pct": 71.42857142857143,
+      "roi": 273.57142857142856,
+      "status": "採用済み・最新統合本文を優先",
+      "historical_catalog_status": "追加探索候補・今回の整理対象"
+    },
+    {
+      "id": "B-DEL3-01",
+      "condition": "対象艇全国率帯=40%超、④級別=A2",
+      "formation": "1-24-35",
+      "n": 20,
+      "hits": 11,
+      "hit_pct": 55.0,
+      "roi": 194.0,
+      "status": "採用済み・最新統合本文を優先",
+      "historical_catalog_status": "追加探索候補・今回の整理対象"
+    },
+    {
+      "id": "B-DEL3-02",
+      "condition": "④との全国率比較=④より5〜10pt未満高い、上位4艇集合=1234",
+      "formation": "1-24-35",
+      "n": 9,
+      "hits": 6,
+      "hit_pct": 66.66666666666667,
+      "roi": 135.0,
+      "status": "採用済み・最新統合本文を優先",
+      "historical_catalog_status": "追加探索候補・今回の整理対象"
+    },
+    {
+      "id": "B5-02",
+      "condition": "③級別=B2",
+      "formation": "1-25-34",
+      "n": 4,
+      "hits": 3,
+      "hit_pct": 75.0,
+      "roi": 421.25,
+      "status": "採用済み・最新統合本文を優先",
+      "hits_with5second": 1,
+      "historical_catalog_status": "追加探索候補・今回の整理対象"
+    },
+    {
+      "id": "B5-03",
+      "condition": "④級別=B2、時間色=🟢",
+      "formation": "1-35-24",
+      "n": 8,
+      "hits": 4,
+      "hit_pct": 50.0,
+      "roi": 265.0,
+      "status": "採用済み・最新統合本文を優先",
+      "hits_with5second": 3,
+      "historical_catalog_status": "追加探索候補・今回の整理対象"
+    },
+    {
+      "id": "B5-04",
+      "condition": "⑤全国率帯=30%超40%以下、③級別=B1",
+      "formation": "1-25-34",
+      "n": 24,
+      "hits": 10,
+      "hit_pct": 41.66666666666667,
+      "roi": 149.58333333333334,
+      "status": "採用済み・最新統合本文を優先",
+      "hits_with5second": 3,
+      "historical_catalog_status": "追加探索候補・今回の整理対象"
+    }
+  ],
+  "deleted": [
+    "B5-01（A級5人）"
+  ],
+  "source": "統合v3本文第9節の後日採用確認と、11月11日のB5-01削除を優先。旧候補ラベルを採用取消しに使わない。",
+  "implementation": "fixed-base.js evaluateKs。型ごとに保持し同一券の自動二重購入はしない。"
+}
