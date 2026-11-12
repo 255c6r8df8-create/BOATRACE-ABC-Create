@@ -60,5 +60,5 @@ function evaluate(row){
  const category=isB?'B':isA?'A':null;
  return {status:category?'candidate':'not_applicable',category,isA,isB,priority:'C＞B＞A',top4,source:'手入力・公式未照合',message:category?`${category}候補。公式の6艇数値と当日全レース検査が済むまでは正式確定できません`:'A/B条件に不該当。Cへ自動移行しません',bet:category==='A'?createA(entries,round):category==='B'?createB(entries,round):null};
 }
-return Object.freeze({VENUES,EXCLUDED:[...EXCLUDED],evaluate});
+return Object.freeze({VENUES,EXCLUDED:[...EXCLUDED],evaluate,createA});
 });

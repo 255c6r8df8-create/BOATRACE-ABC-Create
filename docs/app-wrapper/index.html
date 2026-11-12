@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0e141d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ボート研究">
+<link rel="manifest" href="manifest.webmanifest?v=20261102-name-icon">
+<link rel="apple-touch-icon" sizes="180x180" href="boat-lab-icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="boat-lab-icon-192.png">
+<meta name="application-name" content="ボート研究">
+<title>ボート研究</title>
+<style>
+:root{color-scheme:dark;--bg:#0e141d;--panel:#17212e;--line:#2a3747;--text:#f1f5f8;--muted:#9cabbc;--accent:#72dbce;--accent-soft:#183a3d}
+*{box-sizing:border-box}html{background:#080d14}body{margin:0;color:var(--text);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Noto Sans CJK JP","Hiragino Sans",sans-serif;-webkit-tap-highlight-color:transparent}button,a{font:inherit}button{cursor:pointer}button:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:4px}[hidden]{display:none!important}svg{display:block;flex-shrink:0}
+.app{max-width:460px;min-height:100vh;min-height:100dvh;margin:auto;background:var(--bg);display:flex;flex-direction:column;position:relative;box-shadow:0 0 0 1px #24303d}
+.app-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(25px + env(safe-area-inset-top)) 25px 23px;border-bottom:1px solid #243140;background:var(--bg)}
+.brand{display:flex;align-items:center;gap:11px}.brand-icon{width:44px;height:44px;border-radius:12px;object-fit:cover;flex-shrink:0}
+.brand-word{font-size:15px;letter-spacing:1.5px;font-weight:750}.brand-sub{display:block;font-size:10px;color:var(--muted);letter-spacing:2.4px;margin-top:2px}.sample-label{border:1px solid #384b5d;border-radius:20px;padding:5px 9px;font-size:10px;letter-spacing:1.4px;color:#c1cedb;white-space:nowrap}
+.home{padding:29px 24px 23px;flex:1;display:flex;flex-direction:column}.eyebrow{font-size:10px;font-weight:650;letter-spacing:2.3px;color:var(--accent);margin:0 0 6px}.home h1{font-size:29px;letter-spacing:1px;line-height:1.4;margin:0;font-weight:750}.intro{color:var(--muted);font-size:13px;margin:9px 0 25px}
+.menu-list{display:grid;gap:11px}.menu-card{display:flex;align-items:center;width:100%;gap:15px;padding:17px 17px 17px 15px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:16px;text-align:left;min-height:83px;transition:background .15s,border-color .15s,transform .15s}
+.menu-card:hover{background:#1b2c3c;border-color:#456e73}.menu-card:active{transform:scale(.985)}.menu-icon{width:46px;height:46px;border:1px solid #34524f;border-radius:12px;display:grid;place-items:center;background:#172e32;color:var(--accent)}.menu-icon svg{width:23px;height:23px}.menu-copy{flex:1;min-width:0}.menu-title{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700}.menu-number{font-size:10px;font-weight:600;color:#9badbd;letter-spacing:1.5px}.menu-caption{display:block;font-size:11px;color:var(--muted);margin-top:4px;letter-spacing:.3px}.arrow{color:#8d9eaf;width:17px;height:17px}
+.home-note{display:flex;gap:9px;align-items:center;justify-content:center;margin:25px 0 8px;font-size:11px;color:#8b9cac;letter-spacing:.4px}.home-note span{width:4px;height:4px;background:var(--accent);border-radius:50%}.home-footer{margin-top:auto;padding-top:23px;text-align:center;font-size:9px;letter-spacing:2.4px;color:#64788c}
+.screen-view{height:calc(100dvh - 94px);flex:1;display:flex;flex-direction:column;min-height:600px}.screen-toolbar{display:flex;align-items:center;justify-content:space-between;padding:20px 22px 18px;gap:10px}.back{display:flex;align-items:center;gap:5px;border:0;padding:8px 2px;color:#c0ccda;background:none;font-size:13px;min-height:40px}.back svg{width:17px;height:17px}.screen-name{margin:0;font-size:15px;font-weight:650;letter-spacing:.5px}.screen-counter{font-size:11px;color:var(--muted);letter-spacing:1.5px}
+.site-window{margin:0 18px 20px;flex:1;min-height:340px;border:1px solid #344455;border-radius:19px;overflow:hidden;display:flex;flex-direction:column;background:#121d29;box-shadow:0 12px 32px #070c1325}.window-heading{height:43px;display:flex;align-items:center;gap:6px;padding:0 15px;border-bottom:1px solid #2a3a4b;background:#182431}.window-dot{width:5px;height:5px;background:#4f6578;border-radius:50%}.window-heading small{margin-left:8px;font-size:10px;color:#a5b6c6;letter-spacing:1.4px}.site-frame{height:100%;border:0;width:100%;flex:1;min-height:350px;background:#121d29}
+.bottom-nav{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));padding:9px 6px calc(12px + env(safe-area-inset-bottom));border-top:1px solid #2a3747;background:#111c28;gap:2px;position:sticky;bottom:0}.nav-item{background:none;color:#8298ad;border:0;border-radius:11px;padding:9px 1px 7px;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;min-height:59px}.nav-item svg{width:21px;height:21px}.nav-item span{font-size:10px;line-height:1.35;white-space:pre-line;text-align:center;min-height:41px;display:flex;align-items:center;justify-content:center}.nav-item[aria-current=page]{background:#1b363b;color:#8ce6db}.nav-item:hover{background:#20313f}
+@media(min-width:600px){body{padding:28px 0}.app{border-radius:27px;overflow:hidden;min-height:820px}.screen-view{min-height:725px}.home{padding-top:32px}.app-header{padding-top:27px}.menu-card{min-height:88px}.bottom-nav{position:static}.site-frame{min-height:450px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+.management-panel{padding:22px 18px;overflow:auto;flex:1}.management-panel h2{font-size:21px;margin:0 0 12px}.management-status{font-size:13px;color:#f1cb86;background:#352d21;border:1px solid #635033;border-radius:12px;padding:13px;margin:0 0 20px}.management-link{display:block;color:var(--text);text-decoration:none;background:var(--panel);border:1px solid var(--line);padding:16px;border-radius:13px;margin:0 0 12px}.management-link strong{display:block;font-size:15px}.management-link span{display:block;font-size:12px;color:var(--muted);margin-top:5px}.management-panel p.management-note{font-size:12px;color:var(--muted);line-height:1.8}.management-panel a:hover{border-color:var(--accent)}
+.management-primary{border-color:var(--accent);background:#1b363b}.management-panel details{margin-top:24px}.management-panel summary{cursor:pointer;padding:12px 0;font-size:14px}.management-panel details a:first-of-type{margin-top:12px}
+</style>
+</head>
+<body>
+<div class="app">
+ <header class="app-header">
+  <div class="brand"><img class="brand-icon" src="boat-lab-icon-192.png" alt="" width="44" height="44"><div><div class="brand-word">ボート研究</div><span class="brand-sub">ALL IN ONE</span></div></div>
+  <span class="sample-label">ABC APP</span>
+ </header>
+ <main class="home" id="home-view">
+  <p class="eyebrow">YOUR WORKSPACE</p>
+  <h1>メニュー</h1>
+  <p class="intro">使いたい項目を選んでください。</p>
+  <nav class="menu-list" id="menu-list" aria-label="7つの項目"></nav>
+  <p class="home-note"><span></span>7つの項目を、ひとつのアプリに。</p>
+  <footer class="home-footer">ボート研究</footer>
+ </main>
+ <main class="screen-view" id="screen-view" hidden>
+  <div class="screen-toolbar"><button class="back" id="back-home" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg>ホーム</button><h1 class="screen-name" id="screen-name">レース選択</h1><span class="screen-counter" id="screen-counter">01 / 07</span></div>
+  <div class="site-window"><div class="window-heading" aria-hidden="true"><span class="window-dot"></span><span class="window-dot"></span><span class="window-dot"></span><small id="window-label">SITE 01</small></div><iframe class="site-frame" id="creator-frame" title="一覧作成サイト" sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-popups allow-popups-to-escape-sandbox allow-modals" allow="storage-access" hidden></iframe><iframe class="site-frame" id="results-frame" title="本日の一覧・結果更新サイト" sandbox="allow-scripts allow-same-origin allow-forms allow-downloads allow-popups allow-popups-to-escape-sandbox allow-modals" allow="storage-access" hidden></iframe><iframe class="site-frame" id="site-frame" title="表示エリア" sandbox="" hidden></iframe></div>
+  <section class="management-panel" id="management-panel" aria-labelledby="management-title" hidden>
+   <h2 id="management-title">管理</h2>
+   <p class="management-note">日別集計・累計と、追加・未記入項目を確認できます。</p>
+   <a class="management-link management-primary" href="https://boatrace-abc-results.pages.dev/management" target="_blank" rel="noopener noreferrer"><strong>管理画面を開く</strong><span>日別集計・累計／追加・未記入項目</span></a>
+   <p class="management-note">管理画面は別画面で開きます。接続状況や読み込み結果は、開いた画面で確認できます。</p>
+   <details><summary>元のGoogle管理表を開く</summary>
+    <a class="management-link" href="https://docs.google.com/spreadsheets/d/1Np0v-YDOAxmriuaSK_QJIm-2nGhPrrT1UWcAsXniVVE/edit" target="_blank" rel="noopener noreferrer"><strong>Google管理表①</strong><span>日別集計・累計</span></a>
+    <a class="management-link" href="https://docs.google.com/spreadsheets/d/1-WQiqRqsxn04HbllWsxN91Uz8NpRcmid6abjCIkn-OM/edit" target="_blank" rel="noopener noreferrer"><strong>Google管理表②</strong><span>追加項目・未記入管理</span></a>
+    <p class="management-note">元の表を直接開く場合は、閲覧権限のあるGoogleアカウントが必要です。</p>
+   </details>
+   <p class="management-note">一覧の保存場所は、アプリとSafariで分かれる場合があります。保存済み一覧は、保存したときと同じ画面で確認してください。</p>
+  </section>
+  <section class="management-panel" id="analysis-panel" aria-labelledby="analysis-title" hidden>
+   <h2 id="analysis-title">分析</h2>
+   <p class="management-note">日別集計の累計を表示します。</p>
+   <a class="management-link management-primary" href="https://boatrace-abc-results.pages.dev/analysis" target="_blank" rel="noopener noreferrer"><strong>累計を開く</strong><span>スプレッドシートと自動連動</span></a>
+   <p class="management-note">管理と同じ画面で開き、接続済みの管理表から累計を読み込みます。</p>
+  </section>
+  <section class="management-panel" id="related-sites-panel" aria-labelledby="related-sites-title" hidden>
+   <h2 id="related-sites-title">関連サイト</h2>
+   <p class="management-note">開きたいサイトを選んでください。</p>
+   <a class="management-link" href="https://www.boatrace.jp/" target="_blank" rel="noopener noreferrer"><strong>BOAT RACE オフィシャルサイト</strong><span>www.boatrace.jp</span></a>
+   <a class="management-link" href="https://kyoteibiyori.com/" target="_blank" rel="noopener noreferrer"><strong>ボートレース日和</strong><span>kyoteibiyori.com</span></a>
+  </section>
+  <iframe id="sns-frame" class="site-frame" title="SNS投稿画像の作成" hidden></iframe>
+  <nav class="bottom-nav" id="bottom-nav" aria-label="項目の切り替え"></nav>
+ </main>
+</div>
+<script src="keep-host.js?v=20261104-keep1"></script>
+<script type="application/json" id="app-items">[{"id":1,"name":"レース選択","nav":"レース\n選択","caption":"対象のレースを選ぶ"},{"id":2,"name":"本日のレース","nav":"本日の\nレース","caption":"本日の一覧・結果を確認"},{"id":6,"name":"本日のおすすめレース","nav":"本日の\nおすすめ\nレース","caption":"おすすめレースのページへ"},{"id":3,"name":"管理","nav":"管理","caption":"日別集計・保存データを管理"},{"id":4,"name":"分析","nav":"分析","caption":"記録をまとめて分析"},{"id":7,"name":"関連サイト","nav":"関連\nサイト","caption":"関連サイトのページへ"},{"id":5,"name":"SNS作成 素材","nav":"SNS作成\n素材","caption":"SNS作成・素材の画面へ"}]</script>
+<script>
+// 一覧作成は初回選択時に読み込み、タブ移動では再読み込みしない。
+const resultsURL='https://boatrace-abc-create.255c6r8df8.workers.dev/creator/fixed-daily.html';
+function freshResultsURL(){const url=new URL(resultsURL);url.searchParams.set('app_view','20261112-fixed-base');return url.href;}
+let resultsNeedsRefresh=false;
+const creatorURL='https://boatrace-abc-create.255c6r8df8.workers.dev/creator/index.html?v=20261112-fixed-base';
+const icons={
+ 1:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+ 2:'<path d="M7 3h7l4 4v14H6a1 1 0 0 1-1-1V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M9 12h6M9 16h6"/>',
+ 3:'<path d="M3 7h7l2 2h9v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Zm0 0V5a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v2"/>',
+ 4:'<path d="M4 20V4m0 16h17M9 16v-4m5 4V8m5 8V5"/>',
+ 5:'<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 3-3 6 6"/>',
+ 6:'<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z"/>',
+ 7:'<path d="m10 13 4-4m-6 6-1 1a3.5 3.5 0 0 1-5-5l4-4a3.5 3.5 0 0 1 5 0m2 2 1-1a3.5 3.5 0 0 1 5 5l-4 4a3.5 3.5 0 0 1-5 0"/>'
+};
+const items=JSON.parse(document.getElementById('app-items').textContent).map((item,i)=>({...item,icon:icons[item.id],number:String(i+1).padStart(2,'0')}));
+const $=id=>document.getElementById(id);
+function icon(item){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+item.icon+'</svg>';}
+const arrow='<svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>';
+for(const item of items){
+ const card=document.createElement('button');card.className='menu-card';card.type='button';card.dataset.item=String(item.id);card.innerHTML='<span class="menu-icon">'+icon(item)+'</span><span class="menu-copy"><span class="menu-title">'+item.name+'<span class="menu-number">'+item.number+'</span></span><span class="menu-caption">'+item.caption+'</span></span>'+arrow;card.addEventListener('click',()=>{location.hash='item-'+item.id;});$('menu-list').append(card);
+ const tab=document.createElement('button');tab.className='nav-item';tab.type='button';tab.dataset.item=String(item.id);tab.innerHTML=icon(item)+'<span>'+item.nav+'</span>';tab.addEventListener('click',()=>{location.hash='item-'+item.id;});$('bottom-nav').append(tab);
+}
+function sample(item){return '<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#121d29;color:#eff6f8;font:16px/1.6 -apple-system,BlinkMacSystemFont,"Noto Sans CJK JP",sans-serif}body{display:flex;align-items:center;justify-content:center;text-align:center;min-height:350px;padding:40px 22px}.sample{width:100%}.number{font-size:76px;line-height:1.15;font-weight:750;letter-spacing:-5px;color:#28424d;margin-bottom:23px}.mark{width:66px;height:66px;color:#83e0d3;border:1px solid #376264;background:#1c363d;border-radius:19px;margin:0 auto 24px;display:grid;place-items:center}.mark svg{width:31px;height:31px}.tag{font-size:10px;letter-spacing:2.6px;color:#83b6b7;margin:0 0 7px}h2{font-size:25px;font-weight:700;margin:0}p{font-size:12px;line-height:1.9;color:#94a8ba;margin:13px 0 0}.line{height:1px;width:45px;background:#376264;margin:24px auto 0}</style><div class="sample"><div class="number">'+item.number+'</div><div class="mark">'+icon(item)+'</div><p class="tag">'+([6,7].includes(item.id)?'':'SAMPLE SCREEN')+'</p><h2>'+item.name+'</h2><p>'+([6,7].includes(item.id)?'表示内容は未設定です。':'ここに「'+item.name+'」のサイトが入ります。')+'</p><div class="line"></div></div></html>';}
+function render(){
+ const match=location.hash.match(/^#item-(\d+)$/),item=match?items.find(entry=>entry.id===Number(match[1])):null;
+ $('home-view').hidden=!!item;$('screen-view').hidden=!item;
+ $('sns-frame').hidden=item?.id!==5;
+ if(item?.id===5&&!$('sns-frame').hasAttribute('src'))$('sns-frame').src='sns/index.html?v=20261104-table8';
+ $('management-panel').hidden=item?.id!==3;
+ $('analysis-panel').hidden=item?.id!==4;
+ $('related-sites-panel').hidden=item?.id!==7;
+ $('site-frame').closest('.site-window').hidden=[3,4,7,5].includes(item?.id);
+ if(!item){document.title='ボート研究';return;}
+ $('screen-name').textContent=item.name;$('screen-counter').textContent=item.number+' / '+String(items.length).padStart(2,'0');$('window-label').textContent='SITE '+item.number;$('creator-frame').hidden=item.id!==1;$('results-frame').hidden=item.id!==2;$('site-frame').hidden=item.id<=2;
+ if(item.id===1){if(!$('creator-frame').hasAttribute('src'))$('creator-frame').src=creatorURL;}else if(item.id===2){
+  // 作成側で移動があった場合だけ、保存済みの最新一覧を取り直す。
+  if(!$('results-frame').hasAttribute('src')||resultsNeedsRefresh){$('results-frame').src=freshResultsURL();resultsNeedsRefresh=false;}
+ }else if(![3,4,7,5].includes(item.id)){$('site-frame').title=item.name+'の表示エリア';$('site-frame').srcdoc=sample(item);}document.title=item.name+'｜ボート研究';
+ for(const tab of $('bottom-nav').children){if(tab.dataset.item===String(item.id))tab.setAttribute('aria-current','page');else tab.removeAttribute('aria-current');}
+}
+$('creator-frame').addEventListener('load',()=>{resultsNeedsRefresh=true;});
+$('back-home').addEventListener('click',()=>{location.hash='home';});window.addEventListener('hashchange',render);render();
+</script>
+</body>
+</html>
