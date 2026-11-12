@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';
+const e={URL};e.globalThis=e;vm.createContext(e);for(const f of ['vendor/candidate-engine.js','fixed-base.js','fixed-base-model.js'])vm.runInContext(fs.readFileSync('public/creator/'+f,'utf8'),e);const M=e.ABCFixedBaseModel;
+const date='2026-11-13',r={venue:'常滑',race_number:7,deadline:'13:15'},key='常滑|7',now=Date.parse(date+'T07:30:00+09:00');
+const day={date,members:{[key]:['3419','5125','3950','5077','4910','4558'].map((registration_number,i)=>({registration_number,boat_number:i+1}))}};
+const c=M.officialPeriodCourse(day,r,now);assert.equal(c.value,'42.8');assert.equal(c.runs,7);assert.equal(M.validateCourse(day,r,c),42.8);
+assert.throws(()=>M.validateCourse(day,r,{...c,value:'0'}));assert.throws(()=>M.validateCourse(day,r,{...c,sourceSha:'wrong'}));assert.throws(()=>M.validateCourse(day,r,{...c,registration:'5333'}));assert.throws(()=>M.validateCourse(day,r,{...c,confirmedAt:date+'T13:15:00+09:00'}));
+assert.equal(M.officialPeriodCourse({...day,date:'2027-01-01'},r,now),null);
+day.members[key][0].registration_number='5333';const high=M.officialPeriodCourse(day,r,now);assert.equal(high.value,'100');assert.equal(high.runs,3);
+day.members[key][1].registration_number='5490';assert.equal(M.officialPeriodCourse(day,r,now).value,'100','Missing partner period data does not change first-boat course record');
+day.members[key][0].registration_number='9999';assert.equal(M.officialPeriodCourse(day,r,now),null);
+console.log('Official period automatic lookup: screenshot values, race/registration/period binding, tamper rejection, missing partners, deadline protections OK');

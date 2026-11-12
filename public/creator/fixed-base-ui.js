@@ -21,20 +21,25 @@ root.ABCFixedBaseView={create(ctx){
  function setSupplement(k,value){const r=records().find(r=>key(r)===k);if(readonly||!r||closed(r)||loadError||loadingLedger)throw Error('締切後または閲覧専用の入力は変更できません');supplements={...supplements,[k]:value};op++;}
  async function fetchOne(k){const d=ctx.getDay(),r=records().find(r=>key(r)===k);if(!r||readonly||closed(r))throw Error('締切前の取得済みレースを選択してください');
   const token=op,date=dayDate,code=Object.entries(root.ABC_PDF_PROFILE.supported()).find(([,name])=>name===r.venue)?.[0];
-  const res=await fetch('/api/sns-entry?date='+encodeURIComponent(date)+'&venue='+code+'&race='+r.race_number,{cache:'no-store'}),p=await res.json();if(!res.ok)throw Error(p.error||'公式出走表を取得できません');
-  if(token!==op||date!==dayDate)throw Error('取得中に入力が変わりました。再取得してください');M.validateProfile(d,r,p);setSupplement(k,{...(supplements[k]||{}),official:p});
+  let p=supplements[k]?.official;
+  if(!p){const res=await fetch('/api/sns-entry?date='+encodeURIComponent(date)+'&venue='+code+'&race='+r.race_number,{cache:'no-store'});p=await res.json();if(!res.ok)throw Error(p.error||'公式出走表を取得できません');}
+  if(token!==op||date!==dayDate)throw Error('取得中に入力が変わりました。再取得してください');M.validateProfile(d,r,p);
+  const previous=supplements[k]||{},course=previous.course||M.officialPeriodCourse(d,r);
+  setSupplement(k,{...previous,official:p,...(course?{course}:{})});
  }
  async function fetchSelected(){if(busy)throw Error('取得中です');busy=true;render();try{await fetchOne(selected);}finally{busy=false;render();}}
- async function fetchAll(){if(busy)throw Error('取得中です');const wanted=records().filter(r=>!closed(r)&&!supplements[key(r)]?.official).map(key);busy=true;render();let good=0;const errors=[];const date=dayDate;
+ async function fetchAll(){if(busy)throw Error('取得中です');const wanted=records().filter(r=>!closed(r)&&(!supplements[key(r)]?.official||!supplements[key(r)]?.course)).map(key);busy=true;render();let good=0;const errors=[];const date=dayDate;
   try{for(const k of wanted){if(date!==dayDate||readonly)break;try{await fetchOne(k);good++;}catch(e){errors.push(k+'：'+e.message);}note('公式出走表を取得中 '+(good+errors.length)+' / '+wanted.length);}}finally{busy=false;render();note('取得 '+good+'R'+(errors.length?'／未取得 '+errors.join('／'):''));}}
  function render(){
   const day=ctx.getDay();if(!day||ctx.getShownRecord()||day.date<'2026-11-12'){panel.hidden=true;return;}panel.hidden=false;
   if(dayDate!==day.date){dayDate=day.date;op++;supplements={};prior=null;loadError='';loadingLedger=true;const serial=++readSerial;
-   latest(dayDate).then(record=>{if(serial!==readSerial||dayDate!==day.date)return;if(record){prior=record;supplements=record.supplements;}loadingLedger=false;render();}).catch(e=>{if(serial!==readSerial)return;loadingLedger=false;loadError='保存済み固定ベースを読み取れません：'+e.message;render();});}
+   latest(dayDate).then(record=>{if(serial!==readSerial||dayDate!==day.date)return;if(record){prior=record;supplements=record.supplements;}
+    if(!viewingSaved)for(const r of records()){const k=key(r),s=supplements[k];if(!closed(r)&&s?.official&&!s.course){M.validateProfile(day,r,s.official);const course=M.officialPeriodCourse(day,r);if(course)supplements={...supplements,[k]:{...s,course}};}}
+    loadingLedger=false;render();}).catch(e=>{if(serial!==readSerial)return;loadingLedger=false;loadError='保存済み固定ベースを読み取れません：'+e.message;render();});}
   readonly=!!ctx.getShownRecord()||viewingSaved;panel.replaceChildren();
   panel.append(el('h2',day.date+'｜固定ベース A・B・C・D・E・K'),el('p','2026年11月12日確定版。表示した買い目を分類ごとに確認できます。旧版の保存記録は変更しません。'));
-  const status=el('p',loadError||'公式出走表の全国成績・平均STを使います。期別1コース率は日和で確認した値を入力してください。');status.id='fixed-status';status.setAttribute('role','status');panel.append(status);
-  const actions=el('div');actions.className='secondary-actions';actions.append(button('取得済み全レースの公式全国成績・STを取得',fetchAll,busy||readonly||loadingLedger||!!loadError),button('固定ベースの入力・買い目を保存',save,busy||readonly||loadingLedger||!!loadError));panel.append(actions);
+  const status=el('p',loadError||'公式全国成績・平均STと、旧版で使用していた公式期別1コース率を自動取得します。適用期間外・データ不足の場合は判定待ちになります。');status.id='fixed-status';status.setAttribute('role','status');panel.append(status);
+  const actions=el('div');actions.className='secondary-actions';actions.append(button('全レースの判定データを自動取得',fetchAll,busy||readonly||loadingLedger||!!loadError),button('固定ベースの入力・買い目を保存',save,busy||readonly||loadingLedger||!!loadError));panel.append(actions);
   try{model=M.compute(day,supplements);}catch(e){panel.append(el('p','判定停止：'+e.message));return;}
   panel.append(el('p',Object.entries(model.counts).map(([g,n])=>g+' '+n+'R').join(' ／ ')+' ／ 重複除外 '+model.uniqueRaces+'R ／ 取得済み '+model.receivedRaces+'R'));
   const selector=el('select');selector.id='fixed-race';selector.setAttribute('aria-label','固定ベースの確認レース');
@@ -44,6 +49,7 @@ root.ABCFixedBaseView={create(ctx){
   if(r){const s=supplements[selected]||{},box=el('details');box.open=true;box.append(el('summary',r.venue+r.race_number+'Rの判定根拠'));
    const a=el('a','公式出走表を確認 ↗');a.href=M.officialURL(day.date,r);a.target='_blank';a.rel='noopener noreferrer';box.append(a);
    if(s.official){const wrap=el('div');wrap.className='horizontal';const table=el('table'),head=el('tr');for(const v of ['艇','選手','級別','全国勝率','全国2連対率','平均ST'])head.append(el('th',v));table.append(head);for(const b of s.official.boats){const tr=el('tr');for(const v of [b.lane,b.name,b.grade,b.nationalWin??'欠損',b.nationalTwo??'欠損',b.averageST??'欠損'])tr.append(el('td',String(v)));table.append(tr);}wrap.append(table);box.append(wrap);}
+   if(s.course?.source==='OFFICIAL_PERIOD_FILE')box.append(el('p','①の期別1コース2連対率：'+s.course.value+'％（'+s.course.runs+'走）／公式期別データから自動取得。適用 '+s.course.validFrom+'〜'+s.course.validThrough));
    const locked=readonly||busy||loadingLedger||!!loadError||closed(r),label=el('label','①の期別1コース2連対率（％）'),input=el('input');input.id='fixed-course';input.type='number';input.min='0';input.max='100';input.step='0.01';input.value=s.course?.value??'';input.disabled=locked;label.append(input);box.append(label);
    const sourceLabel=el('label','日和の確認元URL'),source=el('input');source.id='fixed-course-source';source.type='url';source.value=s.course?.source||'';source.placeholder='https://kyoteibiyori.com/…';source.disabled=locked;sourceLabel.append(source);box.append(sourceLabel);
    box.append(button('当レースの期別1コース率を確認して反映',()=>{const c={date:day.date,key:selected,value:input.value,source:source.value,confirmed:true,confirmedAt:new Date().toISOString()};M.validateCourse(day,r,c);setSupplement(selected,{...s,course:c});render();},locked));
