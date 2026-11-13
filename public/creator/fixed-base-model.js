@@ -56,7 +56,7 @@ function compute(day,supplements={},options={}){
    if(course===null)held.push({key:k,record:r,group:'C',reason:'元Cの入口となる期別1コース率が未確認'});
    else evaluated.push(F.evaluateC(bs,{originalC:originalC===true}));
   }
-  const kvals=excluded?[]:(options.legacyK?F.evaluateLegacyKs:F.evaluateKs)(bs,{raceNumber:r.race_number});evaluated.push(...kvals);
+  const kvals=excluded?[]:((options.legacyK||!options.basicK)?F.evaluateLegacyKs:F.evaluateKs)(bs,{raceNumber:r.race_number});evaluated.push(...kvals);
   if(options.legacyE){
   // Derive E only from an independently matched, adopted K prototype.
   if(originalA){
@@ -68,15 +68,25 @@ function compute(day,supplements={},options={}){
    // E's four-point prototype is a bet shape, not a B/K race-entry condition.
    const e13=F.evaluateE13(bs);if(e13.status==='eligible'){evaluated.push(e13.prototype,e13);}else if(e13.status==='pending')held.push({key:k,record:r,group:'E',reason:(e13.reasons||[]).join('／')});
    const numeric=F.boats(bs),near12=Math.abs(numeric[0].rate100-numeric[1].rate100)<1000;
-   const e12=kvals.filter(x=>x.status==='eligible').map(seed=>F.promoteE(bs,seed)).filter(v=>v.status==='eligible'&&v.patterns.includes('12型'));
+   const e12=(options.legacyK||options.basicK?kvals:(excluded?[]:F.evaluateKs(bs))).filter(x=>x.status==='eligible').map(seed=>F.promoteE(bs,seed)).filter(v=>v.status==='eligible'&&v.patterns.includes('12型'));
    for(const v of e12)evaluated.push({...v,patterns:['12型']});
    if(near12&&!e12.length)held.push({key:k,record:r,group:'E',reason:'12型の近率条件に該当。2着2艇・3着2艇の確定配置が未確認'});
   }
   for(const v of evaluated){if(v.status==='eligible'){const same=rows.find(x=>x.key===k&&x.group===v.group&&x.tickets.join('|')===v.tickets.join('|'));if(same)same.patterns=[...new Set([...(same.patterns||[]),...(v.patterns||[])])];else rows.push({...v,key:k,record:clone(r),sourceCategories:[...sourceCategories],sourceClassification:{originalA,originalB,originalC},displayCategory:v.group,betType:({A:'通常A12点',B:'通常B9点',C:'一般形16点',D:'一般形16点',E:'格上げ10点',K:'K型4点'})[v.group],profile:clone(s.official),course:clone(s.course||null)});}else if(v.status==='pending')held.push({key:k,record:r,group:v.group||'判定',reason:(v.reasons||[]).join('／')});}
   if(!rows.some(x=>x.key===k)&&!held.some(x=>x.key===k))nonTargets.push(k);
  }
+ const candidates=options.legacyK||options.basicK?null:clone(rows);
+ if(candidates){
+  const selected=new Map();
+  // Explicit evaluator choices (including C's inner-boat priority) have already run.
+  // Compare only alternatives that actually qualified, never invent another formation.
+  const score=row=>{const bs=F.boats(row.profile.boats.map(b=>({boat:b.lane,grade:b.grade,rate:b.nationalTwo,win:b.nationalWin,averageST:b.averageST})));return [...new Set(row.forms.flatMap(f=>[...f.split('-')[1]].map(Number)))].map(n=>bs[n-1]).sort((a,b)=>b.rate100-a.rate100||a.boat-b.boat);};
+  const prefer=(a,b)=>{const x=score(a),y=score(b);for(let i=0;i<Math.min(x.length,y.length);i++){if(x[i].rate100!==y[i].rate100)return x[i].rate100>y[i].rate100;if(x[i].boat!==y[i].boat)return x[i].boat<y[i].boat;}return false;};
+  for(const row of rows){const id=row.key+'|'+row.group,old=selected.get(id);if(!old||prefer(row,old))selected.set(id,row);}
+  rows.splice(0,rows.length,...selected.values());
+ }
  for(const g of Object.keys(counts))counts[g]=new Set(rows.filter(x=>x.group===g).map(x=>x.key)).size;
- return {ruleVersion:F.VERSION,date:day.date,rows,held,nonTargets,counts,uniqueRaces:new Set(rows.map(r=>r.key)).size,receivedRaces:day.input.races.length};
+ return {ruleVersion:F.VERSION,date:day.date,rows,...(candidates?{candidates,selectionPolicy:"ONE_PREFERRED_PATTERN_PER_RACE_CATEGORY_V1"}:{}),held,nonTargets,counts,uniqueRaces:new Set(rows.map(r=>r.key)).size,receivedRaces:day.input.races.length};
 }
 function validateKSeed(day,r,seed){
  const time=Date.parse(seed.confirmedAt),cutoff=Date.parse(day.date+'T'+r.deadline+':00+09:00');
@@ -89,11 +99,11 @@ function validateKSeed(day,r,seed){
 function createSnapshot(day,supplements,previous=null,now=Date.now()){
  const model=compute(day,supplements);if(!Number.isFinite(now))fail('保存日時が不正です');
  if(previous){if(previous.date!==day.date||previous.ruleVersion!==F.VERSION)fail('保存版の日付・ルール版が不一致です');
-  for(const r of previous.input.races){if(now>=Date.parse(day.date+'T'+r.deadline+':00+09:00')){const next=day.input.races.find(x=>key(x)===key(r));if(JSON.stringify(next)!==JSON.stringify(r)||JSON.stringify(previous.members[key(r)])!==JSON.stringify(day.members[key(r)])||JSON.stringify(previous.supplements[key(r)]||null)!==JSON.stringify(supplements[key(r)]||null)||((previous.engineRevision||1)>=3&&JSON.stringify(previous.model.rows.filter(x=>x.key===key(r)))!==JSON.stringify(model.rows.filter(x=>x.key===key(r)))))fail('締切後の保存済み固定ベース入力は変更できません');}}
+  for(const r of previous.input.races){if(now>=Date.parse(day.date+'T'+r.deadline+':00+09:00')){const next=day.input.races.find(x=>key(x)===key(r));if(JSON.stringify(next)!==JSON.stringify(r)||JSON.stringify(previous.members[key(r)])!==JSON.stringify(day.members[key(r)])||JSON.stringify(previous.supplements[key(r)]||null)!==JSON.stringify(supplements[key(r)]||null)||((previous.engineRevision||1)>=4&&JSON.stringify(previous.model.rows.filter(x=>x.key===key(r)))!==JSON.stringify(model.rows.filter(x=>x.key===key(r)))))fail('締切後の保存済み固定ベース入力は変更できません');}}
  }
- return {format:'BOATRACE_FIXED_BASE_SNAPSHOT_V1',engineRevision:3,...(previous&&(previous.engineRevision||1)<3?{recalculation:{reason:'昨日のK基本条件へ復元。旧候補の追加抽出を停止',sourceRevision:previous.revision,sourceEngineRevision:previous.engineRevision||1,notOriginalPreRacePrediction:true}}:{}),ruleVersion:F.VERSION,date:day.date,savedAt:new Date(now).toISOString(),revision:(previous?.revision||0)+1,input:clone(day.input),members:clone(day.members),fetchReport:clone(day.fetchReport||{}),supplements:clone(supplements),model:clone(model)};
+ return {format:'BOATRACE_FIXED_BASE_SNAPSHOT_V1',engineRevision:4,...(previous&&(previous.engineRevision||1)<4?{recalculation:{reason:'該当候補を保持し、各レース・分類の優先買い目を1つ表示',sourceRevision:previous.revision,sourceEngineRevision:previous.engineRevision||1,notOriginalPreRacePrediction:true}}:{}),ruleVersion:F.VERSION,date:day.date,savedAt:new Date(now).toISOString(),revision:(previous?.revision||0)+1,input:clone(day.input),members:clone(day.members),fetchReport:clone(day.fetchReport||{}),supplements:clone(supplements),model:clone(model)};
 }
-function verifySnapshot(s){if(!s||s.format!=='BOATRACE_FIXED_BASE_SNAPSHOT_V1'||s.ruleVersion!==F.VERSION||!/^20\d\d-\d\d-\d\d$/.test(s.date)||s.input?.race_date!==s.date||!Number.isInteger(s.revision)||s.revision<1||!Number.isFinite(Date.parse(s.savedAt)))fail('固定ベース保存形式が不正です');const model=compute({date:s.date,input:s.input,members:s.members,fetchReport:s.fetchReport},s.supplements,{legacyE:s.engineRevision===undefined||s.engineRevision===1,legacyK:(s.engineRevision||1)<3});if(s.engineRevision!==undefined&&![1,2,3].includes(s.engineRevision))fail('未対応の保存処理版です');if(JSON.stringify(model)!==JSON.stringify(s.model))fail('保存した固定ベース買い目と入力が不一致です');return s;}
+function verifySnapshot(s){if(!s||s.format!=='BOATRACE_FIXED_BASE_SNAPSHOT_V1'||s.ruleVersion!==F.VERSION||!/^20\d\d-\d\d-\d\d$/.test(s.date)||s.input?.race_date!==s.date||!Number.isInteger(s.revision)||s.revision<1||!Number.isFinite(Date.parse(s.savedAt)))fail('固定ベース保存形式が不正です');const model=compute({date:s.date,input:s.input,members:s.members,fetchReport:s.fetchReport},s.supplements,{legacyE:s.engineRevision===undefined||s.engineRevision===1,legacyK:(s.engineRevision||1)<3,basicK:s.engineRevision===3});if(s.engineRevision!==undefined&&![1,2,3,4].includes(s.engineRevision))fail('未対応の保存処理版です');if(JSON.stringify(model)!==JSON.stringify(s.model))fail('保存した固定ベース買い目と入力が不一致です');return s;}
 const BACKUP_KEY='BOATRACE_FIXED_BASE_LAST_BACKUP_V1';
 function writeBackup(snapshot,storage){try{verifySnapshot(snapshot);(storage||root.localStorage).setItem(BACKUP_KEY,JSON.stringify(snapshot));return {ok:true};}catch(e){return {ok:false,error:e.message};}}
 function readBackup(storage){const value=(storage||root.localStorage).getItem(BACKUP_KEY);return value?verifySnapshot(JSON.parse(value)):null;}
