@@ -55,7 +55,7 @@ function compute(day,supplements={},options={}){
    if(course===null)held.push({key:k,record:r,group:'C',reason:'元Cの入口となる期別1コース率が未確認'});
    else evaluated.push(F.evaluateC(bs,{originalC:originalC===true}));
   }
-  const kvals=excluded?[]:F.evaluateKs(bs,{raceNumber:r.race_number});evaluated.push(...kvals);
+  const kvals=excluded?[]:(options.legacyK?F.evaluateLegacyKs:F.evaluateKs)(bs,{raceNumber:r.race_number});evaluated.push(...kvals);
   if(options.legacyE){
   // Derive E only from an independently matched, adopted K prototype.
   if(originalA){
@@ -88,10 +88,11 @@ function validateKSeed(day,r,seed){
 function createSnapshot(day,supplements,previous=null,now=Date.now()){
  const model=compute(day,supplements);if(!Number.isFinite(now))fail('保存日時が不正です');
  if(previous){if(previous.date!==day.date||previous.ruleVersion!==F.VERSION)fail('保存版の日付・ルール版が不一致です');
-  for(const r of previous.input.races){if(now>=Date.parse(day.date+'T'+r.deadline+':00+09:00')){const next=day.input.races.find(x=>key(x)===key(r));if(JSON.stringify(next)!==JSON.stringify(r)||JSON.stringify(previous.members[key(r)])!==JSON.stringify(day.members[key(r)])||JSON.stringify(previous.supplements[key(r)]||null)!==JSON.stringify(supplements[key(r)]||null)||JSON.stringify(previous.model.rows.filter(x=>x.key===key(r)))!==JSON.stringify(model.rows.filter(x=>x.key===key(r))))fail('締切後の保存済み固定ベース入力は変更できません');}}
+  for(const r of previous.input.races){if(now>=Date.parse(day.date+'T'+r.deadline+':00+09:00')){const next=day.input.races.find(x=>key(x)===key(r));if(JSON.stringify(next)!==JSON.stringify(r)||JSON.stringify(previous.members[key(r)])!==JSON.stringify(day.members[key(r)])||JSON.stringify(previous.supplements[key(r)]||null)!==JSON.stringify(supplements[key(r)]||null)||((previous.engineRevision||1)>=3&&JSON.stringify(previous.model.rows.filter(x=>x.key===key(r)))!==JSON.stringify(model.rows.filter(x=>x.key===key(r)))))fail('締切後の保存済み固定ベース入力は変更できません');}}
  }
- return {format:'BOATRACE_FIXED_BASE_SNAPSHOT_V1',engineRevision:2,ruleVersion:F.VERSION,date:day.date,savedAt:new Date(now).toISOString(),revision:(previous?.revision||0)+1,input:clone(day.input),members:clone(day.members),fetchReport:clone(day.fetchReport||{}),supplements:clone(supplements),model:clone(model)};
+ return {format:'BOATRACE_FIXED_BASE_SNAPSHOT_V1',engineRevision:3,...(previous&&(previous.engineRevision||1)<3?{recalculation:{reason:'昨日のK基本条件へ復元。旧候補の追加抽出を停止',sourceRevision:previous.revision,sourceEngineRevision:previous.engineRevision||1,notOriginalPreRacePrediction:true}}:{}),ruleVersion:F.VERSION,date:day.date,savedAt:new Date(now).toISOString(),revision:(previous?.revision||0)+1,input:clone(day.input),members:clone(day.members),fetchReport:clone(day.fetchReport||{}),supplements:clone(supplements),model:clone(model)};
 }
-function verifySnapshot(s){if(!s||s.format!=='BOATRACE_FIXED_BASE_SNAPSHOT_V1'||s.ruleVersion!==F.VERSION||!/^20\d\d-\d\d-\d\d$/.test(s.date)||s.input?.race_date!==s.date||!Number.isInteger(s.revision)||s.revision<1||!Number.isFinite(Date.parse(s.savedAt)))fail('固定ベース保存形式が不正です');const model=compute({date:s.date,input:s.input,members:s.members,fetchReport:s.fetchReport},s.supplements,{legacyE:s.engineRevision===undefined||s.engineRevision===1});if(s.engineRevision!==undefined&&![1,2].includes(s.engineRevision))fail('未対応の保存処理版です');if(JSON.stringify(model)!==JSON.stringify(s.model))fail('保存した固定ベース買い目と入力が不一致です');return s;}
-return Object.freeze({compute,officialURL,officialPeriodCourse,validateProfile,validateCourse,validateKSeed,createSnapshot,verifySnapshot});
+function verifySnapshot(s){if(!s||s.format!=='BOATRACE_FIXED_BASE_SNAPSHOT_V1'||s.ruleVersion!==F.VERSION||!/^20\d\d-\d\d-\d\d$/.test(s.date)||s.input?.race_date!==s.date||!Number.isInteger(s.revision)||s.revision<1||!Number.isFinite(Date.parse(s.savedAt)))fail('固定ベース保存形式が不正です');const model=compute({date:s.date,input:s.input,members:s.members,fetchReport:s.fetchReport},s.supplements,{legacyE:s.engineRevision===undefined||s.engineRevision===1,legacyK:(s.engineRevision||1)<3});if(s.engineRevision!==undefined&&![1,2,3].includes(s.engineRevision))fail('未対応の保存処理版です');if(JSON.stringify(model)!==JSON.stringify(s.model))fail('保存した固定ベース買い目と入力が不一致です');return s;}
+function currentModel(s){verifySnapshot(s);return (s.engineRevision||1)<3?compute({date:s.date,input:s.input,members:s.members,fetchReport:s.fetchReport},s.supplements):s.model;}
+return Object.freeze({compute,currentModel,officialURL,officialPeriodCourse,validateProfile,validateCourse,validateKSeed,createSnapshot,verifySnapshot});
 });

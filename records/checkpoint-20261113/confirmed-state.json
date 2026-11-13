@@ -1,5 +1,5 @@
 {
-  "recordVersion": "20261113_checkpoint_2",
+  "recordVersion": "20261113_checkpoint_3",
   "savedAtUTC": "2026-11-13T02:03:50.869971+00:00",
   "priority": "ユーザーの最新の明示指示→E12_currentおよびこの最新記録→採用済み詳細記録→旧履歴。古い「復元不能・未適用」は不採用の意味に解釈しない。",
   "confirmedBase": {
@@ -438,7 +438,7 @@
       "旧B採用のK4点を現行B9点へ自動併用しない"
     ],
     "K_current": {
-      "status": "採用済み9パターンの統合記録。新規採用・再採用ではない",
+      "status": "助手の追加解釈を含む旧記録。追加候補の現行自動抽出は停止。最上位K_currentを優先。",
       "entry": "従来のK入口を維持。現行B9点の入口とは独立",
       "patterns": [
         {
@@ -606,9 +606,9 @@
   },
   "currentProduction": {
     "repository": "255c6r8df8-create/BOATRACE-ABC-Create",
-    "commit": "faf7bed0ba94550c346027e5fb60200d95796a2d",
-    "version": "0e292fd7-d17e-4ffb-8481-1aa0655b7866",
-    "buildId": "62c2eb26-564d-4200-85f2-b148d881c309",
+    "commit": "6b8f64f6b010d50a8deb16daa6e880987a7031bd",
+    "version": "76279528-ffa8-4661-9b60-becccc44591b",
+    "buildId": "af705dd3-67d7-4ab2-9c38-ef79b478fa13",
     "cloudflareBuildStatus": "success",
     "creator": "https://boatrace-abc-create.255c6r8df8.workers.dev/creator/index.html",
     "app": "https://boatrace-abc-app.pages.dev/"
@@ -638,7 +638,7 @@
   "storage": {
     "fixedBase": "IndexedDB BOATRACE_FIXED_BASE_20261112 / records",
     "actualPurchases": "localStorage BOATRACE_ACTUAL_PURCHASES_V1|YYYY-MM-DD",
-    "snapshotCompatibility": "engineRevisionなし/1は旧判定、2はE13修正版で検証。過去保存モデルを変更しない。",
+    "snapshotCompatibility": "engineRevisionなし/1は旧E・旧K、2はE13修正・旧K、3はE13修正・昨日K基本条件。原本は保持。",
     "currentResultCheckPersistence": "本日のレースの結果照合は画面内のresultsを更新する。照合ボタン自体は永続保存を書き込まない。再読み込み後に維持されると未検証の説明をしない。既存購入記録側で保存された結果は読める。",
     "clientDataBoundary": "ユーザー端末の全IndexedDB/localStorageをこちらから読めない。添付された120RのJSONは原本保存。最新156R一覧・実購入全件をこのバックアップに含むとは言わない。"
   },
@@ -661,7 +661,7 @@
     }
   ],
   "validation": {
-    "latest": "9テストファイル通過、build成功、TypeScript成功",
+    "latest": "K復元後10テストファイル・build・TypeScript通過。Cloudflare production成功。実機表示は未確認。",
     "coverage": [
       "E13の過去全券実例",
       "4.50/10pt境界",
@@ -674,7 +674,7 @@
   },
   "noRepeatQuestions": [
     "採用済みA/B/C/D/E13/Kを最初から確認し直さない",
-    "K採用9パターンを旧資料の2基本形へ戻さない",
+    "Kは最新のユーザー指示に基づく昨日の確定確認書の基本条件を優先し、助手追加候補へ戻さない",
     "CのST追加後に追加集計を求めない",
     "13型確認を12型承認へ拡大しない",
     "使用量・レース締切に影響する不要な操作をユーザーへ繰り返し求めない"
@@ -686,5 +686,23 @@
     "research": "当時の説明が見つかった場合、またはユーザーから指示があった場合のみ再調査。同じ探索を自動的に繰り返さない。",
     "confirmed": "①②全国2連対率差10ポイント未満。K4点＋格上げ6点＝10点。",
     "exampleOnly": "1-24-35＋24-1-2345は一般例であり、12型の具体配置の確定と断定しない。"
+  },
+  "K_latest_user_objection": {
+    "status": "ユーザー指摘により9条件一括採用の解釈を根拠照合する必要あり",
+    "screenshot": "江戸川1Rの1-34-25と1-25-34等、K15R一覧",
+    "causeConfirmed": "evaluateKsがB-DEL2-02/B5-04等を複数列挙。旧分析候補を9採用パターンとして実装した助手の解釈。",
+    "doNotAssume": "保存文の採用済み表記をユーザーの直接指示と同一視しない。管理分析へそのまま移植しない。表示番号非表示だけで解決しない。",
+    "publicChanged": false,
+    "resolution": "昨日の確定確認書の基本条件へ復元。追加候補の重複抽出を停止。"
+  },
+  "K_current": {
+    "status": "ユーザー指示により昨日の確定確認書のK基本条件へ復元",
+    "source": "受領固定ベース確定版_20261112.zip内の固定ベース_確定確認書_20261112.json / K およびB_K型4点_ベース_v1.json",
+    "entry": "①全国2連対率1位、上位4艇集合1235、全国率2位⑤。5位④は基本の内数で別買い目を重複生成しない。",
+    "formation": "2着は全国率3位＋5位、3着は全国率2位＋4位、4点。保存確認書の役割による式を維持。",
+    "extraCandidates": "B-DEL2-01/02、B-DEL3-01/02、B5-02/03/04による追加の抽出を停止。旧保存の検証用互換処理だけ保持。",
+    "E_K": "確定済みE13の基本4点は引き続き保持",
+    "snapshotRevision": 3,
+    "migration": "旧保存原本は保持し、一覧と参考集計を同一の修正版で再判定。締切後入力は変更しない。修正後参考集計を購入前の原本と偽らない。"
   }
 }

@@ -1,9 +1,9 @@
 {
-  "recordVersion": "20261113_checkpoint_2",
-  "filesVerified": 281,
+  "recordVersion": "20261113_checkpoint_3",
+  "filesVerified": 284,
   "allHashesMatch": true,
   "zipCRCValid": true,
-  "zipBytes": 18532847,
-  "zipSha256": "5ccdd9e669827c65af018219117ac4af44da80cc67708bf0f39eec4c9680ad11",
-  "productionUnchanged": "faf7bed0ba94550c346027e5fb60200d95796a2d"
+  "zipBytes": 18543914,
+  "zipSha256": "ac44e8b416d53d8d4239973a81d837ea5cf9f57edcf1ce769fd85eb9e28ab2a3",
+  "productionCommit": "6b8f64f6b010d50a8deb16daa6e880987a7031bd"
 }

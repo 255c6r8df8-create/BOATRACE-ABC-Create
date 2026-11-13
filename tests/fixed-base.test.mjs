@@ -30,7 +30,7 @@ const eb=make('153246');eb[0].rate='60';eb[1].rate='50';eb[2].rate='40';assert.e
 eb[1].rate='40';eb[2].rate='50.01';assert.equal(F.promoteE(eb,k).points,10);eb[1].grade='A2';assert.equal(F.promoteE(eb,k).status,'not_applicable');
 console.log('A採用2パターンの重複保持・K独立4点と通常B分離・E10点と率差10未満の境界OK');
 const adopted=[];
-function collect(bs,raceNumber=1){const values=F.evaluateKs(bs,{raceNumber});for(const v of values){assert.equal(v.points,4);assert.equal(new Set(v.tickets).size,4);adopted.push(...v.patterns);}return values;}
+function collect(bs,raceNumber=1){const values=F.evaluateLegacyKs(bs,{raceNumber});for(const v of values){assert.equal(v.points,4);assert.equal(new Set(v.tickets).size,4);adopted.push(...v.patterns);}return values;}
 collect(make('153246'));
 collect(make('123456',{2:'B1'}));
 const del2=make('143256',{1:'B1'});collect(del2);
@@ -41,7 +41,7 @@ assert.ok(!collect(make('123456',{4:'B2'}),6).some(v=>v.patterns.includes('B5-03
 const b54=make('123456',{3:'B1'});b54[4].rate=40;collect(b54);
 assert.deepEqual([...new Set(adopted)].sort(),['B-K-002','B-K-003','B-DEL2-01','B-DEL2-02','B-DEL3-01','B-DEL3-02','B5-02','B5-03','B5-04'].sort());
 assert.ok(!adopted.includes('B5-01'));
-const noBone=F.evaluateKs(make('123456',{3:'B2'}),{raceNumber:1}).find(x=>x.patterns.includes('B5-02'));const ebone=make('123456');ebone[1].rate=20;ebone[2].rate=55;assert.equal(F.promoteE(ebone,noBone).status,'not_applicable');
+const noBone=F.evaluateLegacyKs(make('123456',{3:'B2'}),{raceNumber:1}).find(x=>x.patterns.includes('B5-02'));const ebone=make('123456');ebone[1].rate=20;ebone[2].rate=55;assert.equal(F.promoteE(ebone,noBone).status,'not_applicable');
 console.log('K採用9パターンを個別検証（削除済みA級5人を復活させず）。13型の③④骨格も検証OK');
 assert.equal(F.evaluateB(make('124536')).points,9);assert.equal(F.evaluateKs(make('124536'),{raceNumber:1}).length,0);
 console.log('現行Bに旧上位4艇入口を追加しないことを検証OK');
