@@ -14,7 +14,7 @@ root.ABCFixedBaseView={create(ctx){
   busy=true;render();const db=await database();try{await new Promise((resolve,reject)=>{const tx=db.transaction('records','readwrite'),s=tx.objectStore('records'),q=s.index('date').getAll(dayDate);let why;
    q.onsuccess=()=>{try{if(op!==token)throw Error('保存中に表示が変わりました');const last=q.result.sort((a,b)=>a.revision-b.revision).at(-1)||null;if(JSON.stringify(last)!==JSON.stringify(prior))throw Error('別画面で保存版が変わりました。上書きせず停止しました');s.add(snapshot);}catch(e){why=e;tx.abort();}};
    tx.oncomplete=resolve;tx.onabort=()=>reject(why||tx.error);tx.onerror=()=>{};
-  });prior=snapshot;note('固定ベースの入力・買い目を保存しました。');}finally{db.close();busy=false;render();}
+  });prior=snapshot;const backup=M.writeBackup(snapshot);db.close();busy=false;render();note('固定ベースの入力・買い目を保存しました。'+(backup.ok?'予備保存も完了。':'予備保存は未完了：'+backup.error));}finally{db.close();busy=false;}
  }
  function download(name,data,type){const a=el('a'),url=URL.createObjectURL(new Blob([data],{type}));a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);}
  function button(label,handler,disabled=false){const b=el('button',label);b.type='button';b.disabled=disabled;b.onclick=async()=>{try{await handler();}catch(e){note('停止：'+e.message);}};return b;}

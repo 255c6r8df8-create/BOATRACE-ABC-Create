@@ -93,6 +93,16 @@ function createSnapshot(day,supplements,previous=null,now=Date.now()){
  return {format:'BOATRACE_FIXED_BASE_SNAPSHOT_V1',engineRevision:3,...(previous&&(previous.engineRevision||1)<3?{recalculation:{reason:'昨日のK基本条件へ復元。旧候補の追加抽出を停止',sourceRevision:previous.revision,sourceEngineRevision:previous.engineRevision||1,notOriginalPreRacePrediction:true}}:{}),ruleVersion:F.VERSION,date:day.date,savedAt:new Date(now).toISOString(),revision:(previous?.revision||0)+1,input:clone(day.input),members:clone(day.members),fetchReport:clone(day.fetchReport||{}),supplements:clone(supplements),model:clone(model)};
 }
 function verifySnapshot(s){if(!s||s.format!=='BOATRACE_FIXED_BASE_SNAPSHOT_V1'||s.ruleVersion!==F.VERSION||!/^20\d\d-\d\d-\d\d$/.test(s.date)||s.input?.race_date!==s.date||!Number.isInteger(s.revision)||s.revision<1||!Number.isFinite(Date.parse(s.savedAt)))fail('固定ベース保存形式が不正です');const model=compute({date:s.date,input:s.input,members:s.members,fetchReport:s.fetchReport},s.supplements,{legacyE:s.engineRevision===undefined||s.engineRevision===1,legacyK:(s.engineRevision||1)<3});if(s.engineRevision!==undefined&&![1,2,3].includes(s.engineRevision))fail('未対応の保存処理版です');if(JSON.stringify(model)!==JSON.stringify(s.model))fail('保存した固定ベース買い目と入力が不一致です');return s;}
-function currentModel(s){verifySnapshot(s);return (s.engineRevision||1)<3?compute({date:s.date,input:s.input,members:s.members,fetchReport:s.fetchReport},s.supplements):s.model;}
-return Object.freeze({compute,currentModel,officialURL,officialPeriodCourse,validateProfile,validateCourse,validateKSeed,createSnapshot,verifySnapshot});
+const BACKUP_KEY='BOATRACE_FIXED_BASE_LAST_BACKUP_V1';
+function writeBackup(snapshot,storage){try{verifySnapshot(snapshot);(storage||root.localStorage).setItem(BACKUP_KEY,JSON.stringify(snapshot));return {ok:true};}catch(e){return {ok:false,error:e.message};}}
+function readBackup(storage){const value=(storage||root.localStorage).getItem(BACKUP_KEY);return value?verifySnapshot(JSON.parse(value)):null;}
+function currentModel(s){
+ verifySnapshot(s);if((s.engineRevision||1)>=3)return s.model;
+ const day={date:s.date,input:s.input,members:s.members,fetchReport:s.fetchReport},supplements=clone(s.supplements);
+ // Reconstruct only the already-published, immutable period file for the saved
+ // pre-deadline input. This is a reference recalculation, never an original forecast.
+ for(const r of s.input.races){const k=key(r),entry=supplements[k];if(entry?.official&&!entry.course&&Date.parse(s.savedAt)<Date.parse(s.date+'T'+r.deadline+':00+09:00')){const c=officialPeriodCourse(day,r,Date.parse(s.savedAt));if(c)entry.course={...c,derivedForReference:true};}}
+ return compute(day,supplements);
+}
+return Object.freeze({compute,currentModel,writeBackup,readBackup,officialURL,officialPeriodCourse,validateProfile,validateCourse,validateKSeed,createSnapshot,verifySnapshot});
 });
