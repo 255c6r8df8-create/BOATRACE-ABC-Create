@@ -12,6 +12,6 @@ const changed=JSON.parse(JSON.stringify(supp));changed[key].course.value='69';as
 const malformed=JSON.parse(JSON.stringify(snapshot));malformed.supplements[key].official.boats[0].averageST=null;assert.throws(()=>M.verifySnapshot(malformed));
 console.log('固定一覧接続：A/B/D・期別率欠損・公式出走表と6艇の本人照合・日付違い拒否・入力/買い目改変検出・締切後保護OK');
 const overlap=JSON.parse(JSON.stringify(supp));overlap[key].official.boats.forEach((b,i)=>{b.nationalTwo=String([60,52,44,36,28,20][i]);b.grade=i===2?'B2':i===0?'A2':'B1';});delete overlap[key].course;
-const multiple=M.compute(day,overlap);assert.equal(multiple.counts.K,1);assert.equal(multiple.rows.filter(x=>x.group==='K').length,3);assert.equal(multiple.uniqueRaces,1);assert.ok(multiple.rows.filter(x=>x.group==='K').every(x=>x.points===4));
+const multiple=M.compute(day,overlap,{legacyK:true});assert.equal(multiple.counts.K,1);assert.equal(multiple.rows.filter(x=>x.group==='K').length,3);assert.equal(multiple.uniqueRaces,1);assert.ok(multiple.rows.filter(x=>x.group==='K').every(x=>x.points===4));
 const newB=JSON.parse(JSON.stringify(supp));newB[key].official.boats.forEach((b,i)=>b.nationalTwo=String([60,52,28,44,36,20][i]));const split=M.compute(day,newB).rows.find(x=>x.group==='B');assert.ok(split);assert.equal(split.sourceClassification.originalB,false);assert.equal(split.displayCategory,'B');assert.equal(split.betType,'通常B9点');
 console.log('元抽出・表示分類・買い目型の区別、およびK複数型の保持とレース重複除外OK');
