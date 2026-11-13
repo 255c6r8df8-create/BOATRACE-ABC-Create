@@ -29,13 +29,18 @@
   const categoryHost=$('fixed-category-stats');categoryHost.replaceChildren();
   for(const group of ['A','B','C','D','E','K']){const rows=snapshot.model.rows.filter(x=>x.group===group),section=el('section');section.dataset.fixedStats=group;section.append(el('h3',group+' '+new Set(rows.map(x=>x.key)).size+'R'));
    const proposed={},rr={};for(const row of rows){proposed[row.key]=row.tickets.map(t=>({bet:t.replaceAll('-',''),amount:100}));if(results[row.key])rr[row.key]=results[row.key];}
-   if(rows.length===new Set(rows.map(x=>x.key)).size)section.append(statisticsTable(D.calculate(proposed,rr)));else {section.append(el('p','同一レースの複数型を保持。型ごとの集計を表示します。'));const sets=new Map();for(const row of rows){const id=(row.patterns||[]).join('・')||row.forms.join('／');if(!sets.has(id))sets.set(id,[]);sets.get(id).push(row);}for(const [name,variants]of sets){const bets={};for(const row of variants)bets[row.key]=row.tickets.map(t=>({bet:t.replaceAll('-',''),amount:100}));section.append(el('h4',name),statisticsTable(D.calculate(bets,rr)));}}categoryHost.append(section);
+   if(rows.length===new Set(rows.map(x=>x.key)).size)section.append(statisticsTable(D.calculate(proposed,rr)));else {
+    // Keep alternative ticket sets separate without exposing internal pattern IDs.
+    const sets=new Map();for(const row of rows){const signature=[...row.tickets].sort().join('|');if(!sets.has(signature))sets.set(signature,{forms:row.forms,rows:[]});sets.get(signature).rows.push(row);}
+    const wrap=el('div');wrap.className='daily-table-wrap';const table=el('table');table.className='daily-table daily-total-table';const head=el('tr');for(const c of ['買い目','レース数','確定数','的中数','的中率','投資額','的中払戻','返還','回収率','収支'])head.append(el('th',c));table.append(head);
+    for(const entry of sets.values()){const bets={};for(const row of entry.rows)bets[row.key]=row.tickets.map(t=>({bet:t.replaceAll('-',''),amount:100}));const calculated=D.calculate(bets,rr),tr=el('tr'),form=el('td');for(const text of entry.forms)form.append(el('div',text));tr.append(form);for(const v of [calculated.purchaseRaces,calculated.confirmedRaces,calculated.hitRaces,rate(calculated.hitRate),money(calculated.spent),money(calculated.winningPayout),money(calculated.refund),rate(calculated.returnRate),money(calculated.balance)])tr.append(el('td',String(v)));table.append(tr);}wrap.append(table);section.append(wrap);
+   }categoryHost.append(section);
   }
   const filter=$('fixed-group').value,grouped=filter==='__grouped',races=ABCFixedDailyLayout.chronological(snapshot.model.rows).map(r=>({...r,variants:r.variants.filter(x=>grouped||!filter||x.group===filter)})).filter(r=>r.variants.length);
   $('fixed-race-count').textContent=races.length+'R';
   if(grouped){for(const group of ['A','B','C','D','E','K']){const selected=races.map(r=>({...r,variants:r.variants.filter(v=>v.group===group)})).filter(r=>r.variants.length),section=el('section');section.id='daily-group-'+group;section.className='daily-category-section';section.dataset.dailyCategory=group;section.append(el('h2',group+'一覧　'+selected.length+'R'));
    if(selected.length)section.append(raceTable(selected,false));else section.append(el('p','該当レースなし'));
-   const stats=categoryHost.children[['A','B','C','D','E','K'].indexOf(group)].cloneNode(true);stats.className='daily-inline-stats';section.append(stats);host.append(section);
+   host.append(section);
   }}else host.append(raceTable(races,true));
   if(snapshot.model.held.length){const h=el('details');h.append(el('summary','保存時の判定待ち '+snapshot.model.held.length+'件'));snapshot.model.held.forEach(x=>h.append(el('p',x.record.venue+x.record.race_number+'R【'+x.group+'】'+x.reason)));host.append(h);}
  }
