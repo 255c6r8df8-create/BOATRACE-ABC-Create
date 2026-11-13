@@ -44,7 +44,7 @@
   }}else host.append(raceTable(races,true));
   if(viewModel.held.length){const h=el('details');h.append(el('summary','保存時の判定待ち '+viewModel.held.length+'件'));viewModel.held.forEach(x=>h.append(el('p',x.record.venue+x.record.race_number+'R【'+x.group+'】'+x.reason)));host.append(h);}
  }
- function choose(){serial++;snapshot=records.filter(r=>r.date===$('fixed-saved-date').value).sort((a,b)=>a.revision-b.revision).at(-1)||null;viewModel=snapshot?M.currentModel(snapshot):null;results={};render();note(snapshot?snapshot.date+'・保存版'+snapshot.revision+((snapshot.engineRevision||1)<3?'｜K確定版で再判定（保存原本は保持）':'｜分類別・各一覧は締切時刻順'):'保存日を選択してください。');}
+ function choose(){serial++;snapshot=records.filter(r=>r.date===$('fixed-saved-date').value).sort((a,b)=>a.revision-b.revision).at(-1)||null;viewModel=snapshot?M.currentModel(snapshot):null;results={};render();note(snapshot?snapshot.date+'・保存版'+snapshot.revision+'｜優先買い目を表示・各分類は締切順（保存原本は保持）':'保存日を選択してください。');}
  async function reload(){const previous=$('fixed-saved-date').value;records=await read();const dates=[...new Set(records.map(r=>r.date))].sort().reverse(),select=$('fixed-saved-date');select.replaceChildren();for(const date of dates){const o=el('option',date);o.value=date;select.append(o);}const requested=new URL(location.href).searchParams.get('date');select.value=previous&&dates.includes(previous)?previous:requested&&dates.includes(requested)?requested:dates[0]||'';choose();if(!dates.length)note('この保存領域では保存データが0件です。「保存JSONから復元」で保存した原本を読み込めます。');}
  async function importSaved(file){
   if(!file||busy)return;if(file.size>12000000)throw Error('保存JSONは12MB以下で指定してください');
