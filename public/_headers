@@ -3,3 +3,6 @@
 
 /creator/restore-20261113.html
   Cache-Control: no-store
+
+/creator/index.html
+  Cache-Control: no-store

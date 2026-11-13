@@ -1,0 +1,31 @@
+{
+  "id": "CONFIRMED_K_20261112",
+  "source": "固定ベース_確定確認書_20261112.json / K、最新確定記録.json / K_current",
+  "entry": {
+    "nationalFirstBoat": 1,
+    "nationalSecondBoat": 5,
+    "topFourBoats": [
+      1,
+      2,
+      3,
+      5
+    ]
+  },
+  "firstBoats": [
+    1
+  ],
+  "secondRateRanks": [
+    3,
+    5
+  ],
+  "thirdRateRanks": [
+    2,
+    4
+  ],
+  "points": 4,
+  "refinement": {
+    "nationalFifthBoat": 4,
+    "sameFormation": true
+  },
+  "additionalCandidateRules": []
+}

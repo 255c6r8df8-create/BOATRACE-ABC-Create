@@ -36,6 +36,7 @@ function validateCourse(day,r,c){
  if(u.protocol!=='https:'||!['kyoteibiyori.com','www.kyoteibiyori.com'].includes(u.hostname)||u.username||u.password)fail('日和の確認元URLを指定してください');return Number(c.value);
 }
 function compute(day,supplements={},options={}){
+ if(F.K_POLICY?.id!=='CONFIRMED_K_20261112')fail('確定Kの処理版が揃っていません。更新版を読み込んでください');
  if(!day||!/^20\d\d-\d\d-\d\d$/.test(day.date)||!Number.isFinite(Date.parse(day.date+'T00:00:00Z'))||new Date(day.date+'T00:00:00Z').toISOString().slice(0,10)!==day.date||day.input?.race_date!==day.date||!Array.isArray(day.input.races)||day.input.races.length>288)fail('固定一覧の日付・入力が不正です');
  const ids=new Set();for(const r of day.input.races){if(r.race_date!==day.date||!venueCodes.includes(r.venue)||!Number.isInteger(r.race_number)||r.race_number<1||r.race_number>12||!/^([01]\d|2[0-3]):[0-5]\d$/.test(r.deadline)||ids.has(key(r)))fail('固定一覧の場・R・締切・重複を確認してください');ids.add(key(r));}
  const rows=[],held=[],nonTargets=[],counts=Object.fromEntries(['A','B','C','D','E','K'].map(g=>[g,0]));
@@ -97,7 +98,7 @@ const BACKUP_KEY='BOATRACE_FIXED_BASE_LAST_BACKUP_V1';
 function writeBackup(snapshot,storage){try{verifySnapshot(snapshot);(storage||root.localStorage).setItem(BACKUP_KEY,JSON.stringify(snapshot));return {ok:true};}catch(e){return {ok:false,error:e.message};}}
 function readBackup(storage){const value=(storage||root.localStorage).getItem(BACKUP_KEY);return value?verifySnapshot(JSON.parse(value)):null;}
 function currentModel(s){
- verifySnapshot(s);if((s.engineRevision||1)>=3)return s.model;
+ verifySnapshot(s);
  const day={date:s.date,input:s.input,members:s.members,fetchReport:s.fetchReport},supplements=clone(s.supplements);
  // Reconstruct only the already-published, immutable period file for the saved
  // pre-deadline input. This is a reference recalculation, never an original forecast.

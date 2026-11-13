@@ -80,13 +80,14 @@ function evaluateA(input,{originalA=false,normalA=null}={}){
  const patterns=['A-RED-A2-01'];if(bs.slice(0,5).map(b=>b.grade[0]).join('')==='ABABA')patterns.push('A-RED-A2-ABABA-02');
  return result('A',null,forms,12,{patterns});
 }
+const K_POLICY=Object.freeze({"id":"CONFIRMED_K_20261112","source":"固定ベース_確定確認書_20261112.json / K、最新確定記録.json / K_current","entry":{"nationalFirstBoat":1,"nationalSecondBoat":5,"topFourBoats":[1,2,3,5]},"firstBoats":[1],"secondRateRanks":[3,5],"thirdRateRanks":[2,4],"points":4,"refinement":{"nationalFifthBoat":4,"sameFormation":true},"additionalCandidateRules":[]});
 function evaluateK(input){
  const bs=boats(input);if(bs.some(b=>b.rate100===null))return pending('全国2連対率6艇が不足');
  const q=ranked(bs).map(b=>b.boat);
  // Preserve the separately adopted K entry, never add these 4 bets to current B9.
- if(q[0]!==1||q.slice(0,4).sort((a,b)=>a-b).join('')!=='1235'||q[1]!==5)return no('採用済みK基本条件に非該当');
- const patterns=['B-K-002'];if(q[4]===4)patterns.push('B-K-003');
- return result('K',1,[[[1],[q[2],q[4]],[q[1],q[3]]]],4,{patterns,order:q});
+ if(q[0]!==K_POLICY.entry.nationalFirstBoat||q.slice(0,4).sort((a,b)=>a-b).join('')!==K_POLICY.entry.topFourBoats.join('')||q[1]!==K_POLICY.entry.nationalSecondBoat)return no('採用済みK基本条件に非該当');
+ const patterns=['B-K-002'];if(q[4]===K_POLICY.refinement.nationalFifthBoat)patterns.push('B-K-003');
+ return result('K',1,[[K_POLICY.firstBoats,K_POLICY.secondRateRanks.map(rank=>q[rank-1]),K_POLICY.thirdRateRanks.map(rank=>q[rank-1])]],K_POLICY.points,{patterns,order:q});
 }
 function evaluateLegacyKs(input,{raceNumber}={}){
  const bs=boats(input);if(bs.some(b=>b.rate100===null))return [pending('全国2連対率6艇が不足')];
@@ -124,5 +125,5 @@ function promoteE(input,confirmedK){
  if(parsed.length!==1||parsed[0][0].join('')!=='1'||parsed[0][1].length!==2||parsed[0][2].length!==2||new Set([...parsed[0][1],...parsed[0][2]]).size!==4||[...parsed[0][1],...parsed[0][2]].includes(1))fail('EのK原型が不正です');
  const [,xy,zw]=parsed[0];if(patterns.includes('13型')&&[...xy].sort((a,b)=>a-b).join('')!=='34')patterns.splice(patterns.indexOf('13型'),1);if(!patterns.length)return no('13型の①−③④の骨格に非該当');return result('E',1,[...parsed,[xy,[1],[...xy,...zw]]],10,{patterns});
 }
-return Object.freeze({VERSION,boats,layout,expand,keepPair,general16,evaluateA,evaluateB,evaluateC,evaluateD,evaluateK,evaluateKs,evaluateLegacyKs,evaluateE13,promoteE});
+return Object.freeze({VERSION,K_POLICY,boats,layout,expand,keepPair,general16,evaluateA,evaluateB,evaluateC,evaluateD,evaluateK,evaluateKs,evaluateLegacyKs,evaluateE13,promoteE});
 });
