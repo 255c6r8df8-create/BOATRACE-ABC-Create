@@ -23,8 +23,8 @@
   }table.append(tbody);wrap.append(table);return wrap;
  }
  function render(){
-  $('fixed-import').disabled=busy;$('fixed-update-results').disabled=busy||!snapshot;$('fixed-download').disabled=busy||!snapshot;$('fixed-reload').disabled=busy;$('fixed-saved-date').disabled=busy;
-  const host=$('fixed-daily-lists');host.replaceChildren();const actualHost=$('fixed-actual-summary');actualHost.replaceChildren();$('fixed-category-stats').replaceChildren();$('fixed-race-count').textContent='';if(!snapshot){host.append(el('p','この開催日の固定ベース保存はありません。作成画面で固定ベースの入力・買い目を保存してください。'));actualHost.append(el('p','保存日を選択してください。'));return;}
+  $('fixed-import').hidden=!!snapshot;$('fixed-import').disabled=busy;$('fixed-import-other').disabled=busy;$('fixed-update-results').disabled=busy||!snapshot;$('fixed-download').disabled=busy||!snapshot;$('fixed-reload').disabled=busy;$('fixed-saved-date').disabled=busy;
+  $('fixed-readable-date').textContent=snapshot?snapshot.date.replace(/^(\d{4})-(\d{2})-(\d{2})$/,'$1年$2月$3日'):'';const host=$('fixed-daily-lists');host.replaceChildren();const actualHost=$('fixed-actual-summary');actualHost.replaceChildren();$('fixed-category-stats').replaceChildren();$('fixed-race-count').textContent='';if(!snapshot){host.append(el('p','この開催日の固定ベース保存はありません。作成画面で固定ベースの入力・買い目を保存してください。'));actualHost.append(el('p','保存日を選択してください。'));return;}
   actual();if(purchaseError)actualHost.append(el('p','集計停止：'+purchaseError));else actualHost.append(statisticsTable(D.calculate(purchases,results)));
   const categoryHost=$('fixed-category-stats');categoryHost.replaceChildren();
   for(const group of ['A','B','C','D','E','K']){const rows=viewModel.rows.filter(x=>x.group===group),section=el('section');section.dataset.fixedStats=group;section.append(el('h3',group+' '+new Set(rows.map(x=>x.key)).size+'R'));
@@ -58,7 +58,7 @@
    });M.writeBackup(imported);await reload();$('fixed-saved-date').value=raw.date;choose();note(raw.date+'の原本 '+raw.input.races.length+'Rを復元しました。表示は確定ルールで再判定しています。');
   }finally{db?.close();busy=false;render();}
  }
- $('fixed-import').onclick=()=>$('fixed-import-file').click();$('fixed-import-file').onchange=()=>importSaved($('fixed-import-file').files[0]).catch(e=>note('復元停止：'+e.message));
+ $('fixed-import').onclick=$('fixed-import-other').onclick=()=>$('fixed-import-file').click();$('fixed-import-file').onchange=()=>importSaved($('fixed-import-file').files[0]).catch(e=>note('復元停止：'+e.message));
  $('fixed-group').onchange=render;$('fixed-saved-date').onchange=choose;$('fixed-reload').onclick=()=>reload().catch(e=>note('停止：'+e.message));
  $('fixed-update-results').onclick=async()=>{if(!snapshot||busy)return;const token=serial,date=snapshot.date,keys=[...new Set([...viewModel.rows.map(x=>x.key),...Object.keys(purchases)])];busy=true;render();let confirmed=0;const errors=[];try{for(const key of keys){const u=resultURL(date,key);try{const response=await fetch('/api/result?date='+date+'&venue='+u.code+'&race='+u.race,{cache:'no-store'}),r=await response.json();if(token!==serial)return;if(!response.ok||!validResult(date,key,r))throw Error(r.error||'公式結果の照合未完了');results[key]=r;if(r.status==='confirmed')confirmed++;}catch(e){errors.push(key+'：'+e.message);}note('公式結果を照合中 '+(confirmed+errors.length)+' / '+keys.length);}}finally{busy=false;render();note('確定結果 '+confirmed+'R'+(errors.length?' ／未確認 '+errors.join('／'):''));}};
  $('fixed-download').textContent='保存原本のJSONを保存';$('fixed-download').onclick=()=>{if(!snapshot)return;const u=URL.createObjectURL(new Blob([JSON.stringify(snapshot,null,2)],{type:'application/json'})),a=el('a');a.href=u;a.download='固定ベース_'+snapshot.date+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),2000);};
