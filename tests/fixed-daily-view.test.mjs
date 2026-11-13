@@ -20,3 +20,9 @@ await ids['fixed-import-file'].onchange();assert.equal(stored.length,2,'Repeated
 stored=[];await ids['fixed-reload'].onclick();assert.equal(ids['fixed-saved-date'].value,'');assert.ok(ids['fixed-daily-status'].textContent.includes('0件'));env.ABCFixedBaseModel.readBackup=()=>snapshot;await ids['fixed-reload'].onclick();assert.equal(ids['fixed-saved-date'].value,date);assert.equal(ids['fixed-race-count'].textContent,'3R');console.log('Empty storage state, explicit initial date, backup fallback, import persistence and duplicate-import prevention OK');
 
 assert.equal(ids['fixed-readable-date'].textContent,'2026年11月13日');assert.equal(ids['fixed-import'].hidden,true);assert.equal(ids['fixed-import-other'].disabled,false);console.log('Full Japanese date is displayed separately and recovery input stays hidden after restoring');
+
+// A damaged record must not prevent intact saved days from being displayed.
+stored=[snapshot,{bad:true}];env.ABCFixedBaseModel.verifySnapshot=s=>{if(s.bad)throw Error('damaged');return s;};env.ABCFixedBaseModel.readBackup=()=>null;await ids['fixed-reload'].onclick();assert.equal(ids['fixed-saved-date'].value,date);assert.equal(ids['fixed-race-count'].textContent,'3R');assert.match(ids['fixed-daily-status'].textContent,/1件の読取を保留/);assert.equal(stored.length,2,'Unreadable originals are never deleted');
+// When IndexedDB fails, a verified independent backup is still available.
+const open=env.indexedDB.open;env.indexedDB.open=()=>{const q={error:Error('storage unavailable')};queueMicrotask(()=>q.onerror?.());return q;};env.ABCFixedBaseModel.readBackup=()=>snapshot;await ids['fixed-reload'].onclick();assert.equal(ids['fixed-saved-date'].value,date);assert.equal(ids['fixed-race-count'].textContent,'3R');assert.match(ids['fixed-daily-status'].textContent,/予備保存から表示/);env.indexedDB.open=open;
+console.log('Intact days survive a damaged record; IndexedDB read failure falls back to independent backup without deleting originals');

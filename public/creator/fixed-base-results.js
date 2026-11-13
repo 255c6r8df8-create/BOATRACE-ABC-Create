@@ -1,14 +1,25 @@
 (async function(){'use strict';
  const M=ABCFixedBaseModel,D=ABCDaily,$=id=>document.getElementById(id),el=(t,s)=>{const n=document.createElement(t);if(s!==undefined)n.textContent=s;return n;},money=n=>Number(n).toLocaleString('ja-JP')+'円',rate=n=>n===null?'―':n.toFixed(1)+'％';
  const venues='桐生 戸田 江戸川 平和島 多摩川 浜名湖 蒲郡 常滑 津 三国 びわこ 住之江 尼崎 鳴門 丸亀 児島 宮島 徳山 下関 若松 芦屋 福岡 唐津 大村'.split(' ');
- let records=[],snapshot=null,viewModel=null,results={},purchases={},purchaseError='',busy=false,serial=0;
+ let records=[],snapshot=null,viewModel=null,results={},purchases={},purchaseError='',busy=false,serial=0,readWarning='';
  const note=m=>{$('fixed-daily-status').textContent=m;};
  function resultURL(date,key){const [venue,no]=key.split('|'),code=venues.indexOf(venue)+1,race=Number(no);if(!code||!Number.isInteger(race)||race<1||race>12)throw Error('購入レースの場・Rが不正です');return {code:String(code).padStart(2,'0'),race,source:'https://www.boatrace.jp/owpc/pc/race/raceresult?rno='+race+'&jcd='+String(code).padStart(2,'0')+'&hd='+date.replaceAll('-','')};}
  function validResult(date,key,r){const u=resultURL(date,key);if(!r||r.date!==date||r.venue!==u.code||r.race!==u.race||r.source!==u.source||!Number.isFinite(Date.parse(r.retrievedAt)))return false;if(r.status==='unconfirmed')return typeof r.reason==='string';return r.status==='confirmed'&&Array.isArray(r.order)&&r.order.length===3&&new Set(r.order).size===3&&r.order.every(n=>Number.isInteger(n)&&n>=1&&n<=6)&&Number.isSafeInteger(r.payout)&&r.payout>0&&Array.isArray(r.refunds)&&new Set(r.refunds).size===r.refunds.length&&r.refunds.every(n=>Number.isInteger(n)&&n>=1&&n<=6&&!r.order.includes(n));}
  async function read(){
-  const db=await new Promise((resolve,reject)=>{const q=indexedDB.open('BOATRACE_FIXED_BASE_20261112',1);q.onupgradeneeded=()=>{const s=q.result.createObjectStore('records',{keyPath:'id'});s.createIndex('date','date');};q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});
-  try{return await new Promise((resolve,reject)=>{const q=db.transaction('records').objectStore('records').getAll();q.onsuccess=()=>{try{for(const r of q.result)M.verifySnapshot(r);const backup=q.result.length?null:M.readBackup();resolve(q.result.length?q.result:backup?[backup]:[]);}catch(e){reject(e)}};q.onerror=()=>reject(q.error);});}finally{db.close();}
+  readWarning='';let db;const host=globalThis.ABCFixedBaseHost;const remote=host?await host.read():{ok:false,records:[]};const valid=[...(remote.records||[])];if(host?.available()&&!remote.ok)readWarning='アプリ本体への接続未完了：'+(remote.error||'応答なし')+'。';
+  try{
+   db=await new Promise((resolve,reject)=>{const q=indexedDB.open('BOATRACE_FIXED_BASE_20261112',1);q.onupgradeneeded=()=>{const s=q.result.createObjectStore('records',{keyPath:'id'});s.createIndex('date','date');};q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});
+   const saved=await new Promise((resolve,reject)=>{const q=db.transaction('records').objectStore('records').getAll();q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});
+   let invalid=0;for(const r of saved){try{M.verifySnapshot(r);if(!valid.some(x=>JSON.stringify(x)===JSON.stringify(r)))valid.push(r);}catch(e){invalid++;}}
+   if(invalid)readWarning+='保存原本'+invalid+'件の読取を保留しています（削除していません）。';
+   if(valid.length){if(host&&remote.ok){for(const r of saved){try{M.verifySnapshot(r);const kept=await host.save(r);if(!kept.ok)readWarning+='本体保存未完了：'+kept.error+'。';}catch(e){}}}return valid;}
+  }catch(e){readWarning+='端末の保存領域を読み取れません：'+e.message+'。';}finally{db?.close();}
+  if(valid.length)return valid;
+  try{const backup=M.readBackup?.();if(backup){readWarning+='予備保存から表示しています。';if(host&&remote.ok){const saved=await host.save(backup);if(!saved.ok)readWarning+='本体保存未完了：'+saved.error+'。';}return [backup];}}catch(e){readWarning+='予備保存を読み取れません：'+e.message+'。';}
+  if(readWarning)throw Error(readWarning);
+  return [];
  }
+
  function actual(){purchases={};purchaseError='';if(!snapshot)return;try{const raw=localStorage.getItem('BOATRACE_ACTUAL_PURCHASES_V1|'+snapshot.date);if(!raw)return;const old=JSON.parse(raw);if(old.version!==1||old.date!==snapshot.date||!old.purchases||!old.results)throw Error('購入記録の形式が不正です');for(const [key,tickets]of Object.entries(old.purchases)){resultURL(snapshot.date,key);if(!Array.isArray(tickets)||JSON.stringify(D.parsePurchases(D.formatPurchases(tickets)))!==JSON.stringify(tickets))throw Error('購入記録を確認できません');}purchases=old.purchases;for(const [key,r]of Object.entries(old.results)){if(!validResult(snapshot.date,key,r))throw Error('保存済み結果を確認できません');if(!results[key]||Date.parse(r.retrievedAt)>Date.parse(results[key].retrievedAt))results[key]=r;}}catch(e){purchaseError=e.message;purchases={};}}
  function summary(s){return '対象 '+s.purchaseRaces+'R ／確定 '+s.confirmedRaces+'R ／的中 '+s.hitRaces+'R ／的中率 '+rate(s.hitRate)+' ／確定投資 '+money(s.spent)+' ／払戻・返還 '+money(s.returned)+' ／回収率 '+rate(s.returnRate)+' ／収支 '+money(s.balance)+' ／結果待ち '+s.pendingRaces+'R';}
  function statisticsTable(calculated){const table=el('table');table.className='daily-table daily-total-table';const head=el('thead'),hr=el('tr');for(const c of ['レース数','確定数','的中数','的中率','投資額','的中払戻','返還','回収率','収支'])hr.append(el('th',c));head.append(hr);table.append(head);const tr=el('tr');for(const v of [calculated.purchaseRaces,calculated.confirmedRaces,calculated.hitRaces,rate(calculated.hitRate),money(calculated.spent),money(calculated.winningPayout),money(calculated.refund),rate(calculated.returnRate),money(calculated.balance)])tr.append(el('td',String(v)));table.append(tr);const wrap=el('div');wrap.className='daily-table-wrap';wrap.append(table);return wrap;}
@@ -44,7 +55,7 @@
   }}else host.append(raceTable(races,true));
   if(viewModel.held.length){const h=el('details');h.append(el('summary','保存時の判定待ち '+viewModel.held.length+'件'));viewModel.held.forEach(x=>h.append(el('p',x.record.venue+x.record.race_number+'R【'+x.group+'】'+x.reason)));host.append(h);}
  }
- function choose(){serial++;snapshot=records.filter(r=>r.date===$('fixed-saved-date').value).sort((a,b)=>a.revision-b.revision).at(-1)||null;viewModel=snapshot?M.currentModel(snapshot):null;results={};render();note(snapshot?snapshot.date+'・保存版'+snapshot.revision+'｜優先買い目を表示・各分類は締切順（保存原本は保持）':'保存日を選択してください。');}
+ function choose(){serial++;snapshot=records.filter(r=>r.date===$('fixed-saved-date').value).sort((a,b)=>a.revision-b.revision).at(-1)||null;viewModel=snapshot?M.currentModel(snapshot):null;results={};render();note(readWarning+(snapshot?snapshot.date+'・保存版'+snapshot.revision+'｜優先買い目を表示・各分類は締切順（保存原本は保持）':'保存日を選択してください。'));}
  async function reload(){const previous=$('fixed-saved-date').value;records=await read();const dates=[...new Set(records.map(r=>r.date))].sort().reverse(),select=$('fixed-saved-date');select.replaceChildren();for(const date of dates){const o=el('option',date);o.value=date;select.append(o);}const requested=new URL(location.href).searchParams.get('date');select.value=previous&&dates.includes(previous)?previous:requested&&dates.includes(requested)?requested:dates[0]||'';choose();if(!dates.length)note('この保存領域では保存データが0件です。「保存JSONから復元」で保存した原本を読み込めます。');}
  async function importSaved(file){
   if(!file||busy)return;if(file.size>12000000)throw Error('保存JSONは12MB以下で指定してください');
@@ -55,7 +66,7 @@
    await new Promise((resolve,reject)=>{const tx=db.transaction('records','readwrite'),store=tx.objectStore('records'),q=store.getAll();let why;
     q.onsuccess=()=>{try{const same=q.result.filter(x=>x.date===raw.date),exact=same.find(x=>JSON.stringify(x.input)===JSON.stringify(raw.input)&&JSON.stringify(x.supplements)===JSON.stringify(raw.supplements)&&JSON.stringify(x.model)===JSON.stringify(raw.model));if(exact){imported=exact;return;}const revision=Math.max(raw.revision,...same.map(x=>x.revision+1),1);imported={...raw,revision,id:raw.date+'|'+revision,importedFrom:{revision:raw.revision,savedAt:raw.savedAt,filename:file.name,importedAt:new Date().toISOString()}};M.verifySnapshot(imported);store.add(imported);}catch(e){why=e;tx.abort();}};
     tx.oncomplete=resolve;tx.onabort=()=>reject(why||tx.error);tx.onerror=()=>{};
-   });M.writeBackup(imported);await reload();$('fixed-saved-date').value=raw.date;choose();note(raw.date+'の原本 '+raw.input.races.length+'Rを復元しました。表示は確定ルールで再判定しています。');
+   });const backup=M.writeBackup(imported);const hostSave=globalThis.ABCFixedBaseHost?await ABCFixedBaseHost.save(imported):null;await reload();$('fixed-saved-date').value=raw.date;choose();note(raw.date+'の原本 '+raw.input.races.length+'Rを復元しました。表示は確定ルールで再判定しています。'+(backup.ok?'予備保存も完了。':'予備保存は未完了：'+backup.error)+(hostSave?(hostSave.ok?'アプリ本体保存と再読込も確認しました。':'アプリ本体保存は未完了：'+hostSave.error):''));
   }finally{db?.close();busy=false;render();}
  }
  $('fixed-import').onclick=$('fixed-import-other').onclick=()=>$('fixed-import-file').click();$('fixed-import-file').onchange=()=>importSaved($('fixed-import-file').files[0]).catch(e=>note('復元停止：'+e.message));
