@@ -30,7 +30,7 @@
    const bets=el('td');bets.className='daily-bet-cell';for(const form of row.forms)bets.append(el('div',form));tr.append(bets);
    const result=results[row.key],rr=result?{[row.key]:result}:{},calculated=D.calculate({[row.key]:row.tickets.map(t=>({bet:t.replaceAll('-',''),amount:100}))},rr).rows[0];
    const outcome=el('td'),link=el('a',result?.status==='confirmed'?result.order.join('-'):'未確定');link.href=resultURL(snapshot.date,row.key).source;link.target='_blank';link.rel='noopener noreferrer';outcome.append(link);tr.append(outcome);
-   for(const value of [calculated.status,result?.status==='confirmed'?money(result.payout):'―',money(row.points*100),row.group==='A'?'🔴':['B','K'].includes(row.group)?(row.record.race_number<=6?'🔵':'🟢'):'―',row.axis?String(row.axis):'―',row.excluded?String(row.excluded):row.group==='K'?'K4点':'―'])tr.append(el('td',value));tbody.append(tr);
+   for(const value of [calculated.status==='的中'?'◯':calculated.status==='不的中'?'×':calculated.status,result?.status==='confirmed'?money(result.payout):'―',money(row.points*100),row.group==='A'?'🔴':['B','K'].includes(row.group)?(row.record.race_number<=6?'🔵':'🟢'):'―',row.axis?String(row.axis):'―',row.excluded?String(row.excluded):row.group==='K'?'K4点':'―'])tr.append(el('td',value));tbody.append(tr);
   }table.append(tbody);wrap.append(table);return wrap;
  }
  function render(){
